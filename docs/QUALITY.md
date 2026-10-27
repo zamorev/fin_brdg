@@ -18,6 +18,10 @@ streamlit run app/main.py
 
 Пройти acceptance criteria **своей** задачи из `tasks/in-progress/`.
 
+## Ретро по последним коммитам
+
+Дополнение к verify: разбор **1–2 последних коммитов** и список улучшений (без автоматического рефакторинга). Процедура и формат — [harness/COORDINATION.md](../harness/COORDINATION.md) («Ретро по последним коммитам»).
+
 ## Структурные тесты
 
 `pytest tests/test_architecture.py` — границы слоёв (domain без streamlit и т.д.).

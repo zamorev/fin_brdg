@@ -34,7 +34,7 @@
 ```text
 Reason  — агент читает AGENTS.md → docs → задачу
 Act     — правки в своей зоне, коммит в ветке
-Observe — ./scripts/verify.sh; обновить чеклист задачи
+Observe — ./scripts/verify.sh; ретро по 1–2 последним коммитам (предложения улучшений); обновить чеклист задачи
 Repeat  — до acceptance criteria
 ```
 
