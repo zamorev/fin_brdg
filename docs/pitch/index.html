@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fin Bridge — питч</title>
+<style>
+  :root {
+    --bg: #0e0f1f;
+    --bg-2: #171933;
+    --card: #1d2040;
+    --card-2: #242858;
+    --line: rgba(255,255,255,.10);
+    --text: #f3f4ff;
+    --muted: #a3a7c9;
+    --lime: #c8ff3d;
+    --coral: #ff6b6b;
+    --blue: #5b8cff;
+    --amber: #ffc857;
+    --W: 1280px;
+    --H: 720px;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+  body { -webkit-font-smoothing: antialiased; }
+
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  .deck { position: relative; width: var(--W); height: var(--H); transform-origin: center center; }
+  .slide {
+    position: absolute; inset: 0; padding: 52px 72px 46px;
+    display: none; flex-direction: column;
+    background:
+      radial-gradient(900px 500px at 110% -10%, rgba(91,140,255,.18), transparent 60%),
+      radial-gradient(700px 400px at -10% 110%, rgba(200,255,61,.10), transparent 60%),
+      var(--bg);
+  }
+  .slide.active { display: flex; }
+  .slide::after {
+    content: attr(data-n); position: absolute; right: 36px; bottom: 18px;
+    font-size: 13px; color: var(--muted); letter-spacing: .08em; display: none;
+  }
+
+  h1, h2, h3 { margin: 0; line-height: 1.05; letter-spacing: -.02em; }
+  h1 { font-size: 112px; font-weight: 900; }
+  h2 { font-size: 42px; font-weight: 850; margin-bottom: 10px; }
+  h3 { font-size: 22px; font-weight: 750; }
+  p { margin: 0; }
+  .lead { font-size: 24px; color: var(--muted); max-width: 980px; }
+  .kicker { font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--lime); font-weight: 700; margin-bottom: 14px; }
+  .fine { font-size: 13px; color: var(--muted); margin-top: auto; padding-top: 14px; line-height: 1.4; }
+  .lime { color: var(--lime); } .coral { color: var(--coral); } .blue { color: var(--blue); } .amber { color: var(--amber); }
+  .body { flex: 1; display: flex; flex-direction: column; margin-top: 18px; }
+
+  .row { display: flex; gap: 20px; }
+  .grow { flex: 1; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  .card.alt { background: var(--card-2); }
+  .card h3 { margin-bottom: 8px; }
+  .card p, .card li { font-size: 18px; line-height: 1.4; color: var(--text); }
+  ul { margin: 8px 0 0; padding-left: 20px; }
+  li { margin: 4px 0; }
+
+  .badge {
+    display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; vertical-align: middle; margin-left: 6px;
+    background: rgba(255,255,255,.08); color: var(--muted);
+  }
+  .badge.fact { background: rgba(200,255,61,.16); color: var(--lime); }
+  .badge.int  { background: rgba(91,140,255,.18); color: #9db8ff; }
+  .badge.hyp  { background: rgba(255,200,87,.18); color: var(--amber); }
+  .badge.pilot{ background: rgba(255,107,107,.18); color: var(--coral); }
+
+  .sticker {
+    display: inline-block; background: var(--lime); color: #111; font-weight: 900; font-size: 18px;
+    padding: 10px 18px; border-radius: 12px; transform: rotate(-3deg);
+    box-shadow: 0 8px 0 rgba(0,0,0,.35);
+  }
+  .sticker.coral { background: var(--coral); color: #fff; transform: rotate(2deg); }
+  .sticker.blue { background: var(--blue); color: #fff; transform: rotate(-1.5deg); }
+
+  .big { font-size: 120px; font-weight: 900; line-height: .9; letter-spacing: -.04em; }
+  .num { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
+
+  .xp { position: relative; height: 34px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+  .xp > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--lime)); width: 0; transition: width 1.1s cubic-bezier(.2,.8,.2,1); }
+  .active .xp > i { width: var(--w); }
+  .xp.coral > i { background: linear-gradient(90deg, var(--coral), var(--amber)); }
+
+  /* staggered reveal */
+  .in { opacity: 0; transform: translateY(14px); }
+  .active .in { animation: rise .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .active .in:nth-child(1) { animation-delay: .05s } .active .in:nth-child(2) { animation-delay: .15s }
+  .active .in:nth-child(3) { animation-delay: .25s } .active .in:nth-child(4) { animation-delay: .35s }
+  .active .in:nth-child(5) { animation-delay: .45s } .active .in:nth-child(6) { animation-delay: .55s }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* chrome */
+  .progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--lime); width: 0; transition: width .3s; z-index: 10; }
+  .counter { position: fixed; right: 18px; bottom: 14px; font-size: 13px; color: var(--muted); z-index: 10; }
+  .hint { position: fixed; left: 18px; bottom: 14px; font-size: 13px; color: var(--muted); z-index: 10; opacity: .7; }
+  .notes {
+    position: fixed; left: 0; right: 0; bottom: 0; max-height: 36vh; overflow: auto;
+    background: rgba(10,11,25,.96); border-top: 2px solid var(--lime); padding: 16px 28px 24px; z-index: 20;
+    font-size: 18px; line-height: 1.5; display: none;
+  }
+  .notes.open { display: block; }
+  .notes b { color: var(--lime); }
+  aside.speaker { display: none; }
+
+  /* ---------- slide-specific ---------- */
+  /* 1 title */
+  .title { justify-content: center; align-items: flex-start; }
+  .title .logo { width: 96px; height: 96px; border-radius: 28px; box-shadow: 0 12px 40px rgba(200,255,61,.25); }
+  .title h1 span { color: var(--lime); }
+  .title .sub { font-size: 32px; font-weight: 700; margin-top: 18px; max-width: 900px; }
+  .title .meta { margin-top: 36px; display: flex; gap: 28px; color: var(--muted); font-size: 16px; }
+  .title .sticker { position: absolute; right: 90px; top: 110px; font-size: 22px; }
+
+  /* 2 chat */
+  .chat { display: flex; flex-direction: column; gap: 14px; max-width: 760px; margin-top: 10px; }
+  .bubble { padding: 18px 24px; border-radius: 24px; font-size: 28px; line-height: 1.25; max-width: 80%; }
+  .bubble.teen { background: var(--blue); align-self: flex-start; border-bottom-left-radius: 6px; }
+  .bubble.parent { background: var(--card-2); align-self: flex-end; border-bottom-right-radius: 6px; border: 1px solid var(--line); }
+  .gameover { position: absolute; right: 80px; top: 170px; text-align: center; }
+  .gameover .go { font-size: 72px; font-weight: 900; color: var(--coral); letter-spacing: .04em; text-shadow: 0 0 40px rgba(255,107,107,.5); }
+  .gameover .retry { margin-top: 14px; display: inline-block; padding: 12px 24px; border-radius: 12px; border: 2px dashed var(--muted); color: var(--muted); font-weight: 800; }
+
+  /* 3 stairs */
+  .stairs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; align-items: end; margin-top: 10px; }
+  .step { border-radius: 20px; padding: 22px; border: 1px solid var(--line); background: var(--card); }
+  .step .lvl { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+  .step h3 { font-size: 26px; margin: 8px 0 10px; }
+  .step p { font-size: 18px; line-height: 1.4; color: var(--muted); }
+  .step.s1 { min-height: 240px; } .step.s2 { min-height: 300px; } .step.s3 { min-height: 360px; background: var(--card-2); border-color: rgba(255,200,87,.5); }
+  .step.s3 .lock { font-size: 40px; }
+
+  /* 4 interviews */
+  .iv { display: grid; grid-template-columns: 260px 1fr; gap: 28px; margin-top: 6px; }
+  .iv .ten { color: var(--lime); }
+  .iv .cap { font-size: 18px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
+  .hlist { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .hlist div { font-size: 15px; line-height: 1.3; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+  .hlist b { color: var(--lime); }
+  .quotes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .quote { padding: 16px 18px; border-radius: 16px; font-size: 19px; line-height: 1.3; font-weight: 600; color: #111; }
+  .quote small { display: block; margin-top: 10px; font-size: 13px; font-weight: 700; opacity: .7; }
+  .quote.q1 { background: var(--lime); transform: rotate(-1.2deg); }
+  .quote.q2 { background: var(--amber); transform: rotate(1deg); }
+  .quote.q3 { background: #9db8ff; transform: rotate(.8deg); }
+  .quote.q4 { background: #ffb3b3; transform: rotate(-.8deg); }
+  .iv .so { margin-top: 12px; font-size: 17px; line-height: 1.4; }
+
+  /* 5 achievements */
+  .ach { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 10px; }
+  .ach .card { display: flex; flex-direction: column; min-height: 330px; }
+  .ach .num { margin-bottom: 10px; }
+  .ach .src { margin-top: auto; font-size: 13px; color: var(--muted); padding-top: 10px; border-top: 1px dashed var(--line); }
+
+  /* 6 jtbd */
+  .heroes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 6px; }
+  .hero { border-radius: 24px; padding: 24px 26px; border: 1px solid var(--line); background: var(--card); position: relative; }
+  .hero .av { width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font-size: 34px; margin-bottom: 10px; }
+  .hero.teen .av { background: rgba(91,140,255,.25); } .hero.parent .av { background: rgba(200,255,61,.2); }
+  .hero h3 { font-size: 26px; margin-bottom: 14px; }
+  .js { display: grid; grid-template-columns: 110px 1fr; gap: 8px 14px; font-size: 17px; line-height: 1.35; }
+  .js b { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding-top: 4px; }
+  .js .need { font-weight: 800; color: var(--lime); }
+
+  /* 7 hypothesis */
+  .formula { display: flex; align-items: center; gap: 18px; margin-top: 20px; flex-wrap: wrap; }
+  .formula .box { padding: 20px 24px; border-radius: 18px; font-size: 22px; font-weight: 800; line-height: 1.25; max-width: 330px; }
+  .formula .box small { display: block; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin-bottom: 6px; font-weight: 800; }
+  .formula .b1 { background: rgba(91,140,255,.22); border: 1px solid rgba(91,140,255,.5); }
+  .formula .b2 { background: rgba(200,255,61,.14); border: 1px solid rgba(200,255,61,.5); }
+  .formula .b3 { background: var(--lime); color: #111; }
+  .formula .arrow { font-size: 44px; color: var(--muted); }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+  .check { display: flex; gap: 14px; align-items: flex-start; font-size: 19px; line-height: 1.35; }
+  .check i { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--lime); display: grid; place-items: center; font-style: normal; color: var(--lime); font-weight: 900; }
+  .question { margin-top: 26px; padding: 18px 24px; border-left: 6px solid var(--coral); background: rgba(255,107,107,.08); border-radius: 0 16px 16px 0; font-size: 22px; line-height: 1.3; }
+
+  /* 8 loop */
+  .loopwrap { display: grid; grid-template-columns: 1fr 360px; gap: 30px; align-items: center; margin-top: 6px; }
+  .loop { position: relative; height: 400px; }
+  .node { position: absolute; width: 280px; padding: 14px 18px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+  .node b { display: block; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .node h3 { font-size: 22px; margin: 4px 0 4px; }
+  .node p { font-size: 16px; color: var(--muted); }
+  .node.n1 { left: 0; top: 0; } .node.n2 { right: 0; top: 0; }
+  .node.n4 { left: 0; bottom: 0; background: var(--lime); color: #111; border-color: transparent; }
+  .node.n4 b, .node.n4 p { color: #333; }
+  .node.n3 { right: 0; bottom: 0; }
+  .loop .ring { position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 50%; border: 3px dashed rgba(255,255,255,.25); display: grid; place-items: center; font-size: 46px; animation: spin 24s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .phones { display: flex; gap: 16px; justify-content: center; }
+  .phone { width: 160px; height: 300px; border-radius: 26px; background: #0a0b19; border: 3px solid #2b2f5a; padding: 14px 12px; position: relative; }
+  .phone::before { content: ""; position: absolute; left: 50%; top: 8px; width: 50px; height: 5px; margin-left: -25px; border-radius: 3px; background: #2b2f5a; }
+  .phone .who { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 10px 0 8px; }
+  .phone .l { height: 10px; border-radius: 6px; background: rgba(255,255,255,.12); margin: 8px 0; }
+  .phone .l.w60 { width: 60%; } .phone .l.w80 { width: 80%; }
+  .phone .btn { margin-top: 12px; height: 28px; border-radius: 8px; background: var(--blue); display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+  .phone.parent .btn { background: var(--lime); color: #111; }
+  .phone .tg { position: absolute; bottom: 12px; left: 12px; right: 12px; font-size: 10px; color: var(--muted); text-align: center; }
+
+  /* 9 demo */
+  .demo { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 4px; }
+  .screen { border-radius: 24px; background: #0a0b19; border: 3px solid #2b2f5a; padding: 18px 16px; min-height: 440px; display: flex; flex-direction: column; font-size: 14px; }
+  .screen .t { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .screen h3 { font-size: 18px; margin: 6px 0 12px; }
+  .bar { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin: 5px 0; font-size: 13px; }
+  .bar .tr { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .bar .tr i { display: block; height: 100%; background: var(--blue); }
+  .err { margin-top: auto; padding: 8px 10px; border-radius: 10px; background: rgba(255,107,107,.15); color: #ffb3b3; font-size: 13px; }
+  .ok { margin-top: auto; padding: 8px 10px; border-radius: 10px; background: rgba(200,255,61,.15); color: var(--lime); font-size: 13px; }
+  .opt { padding: 8px 10px; border-radius: 10px; background: var(--card); margin: 5px 0; font-size: 13px; display: flex; justify-content: space-between; }
+  .opt span { color: var(--muted); }
+  .opt.pick { outline: 2px solid var(--amber); }
+  .msg { padding: 10px 12px; border-radius: 12px; background: var(--card); font-size: 13px; line-height: 1.35; margin: 6px 0; }
+  .status { margin-top: auto; font-size: 12px; color: var(--amber); }
+  .dec { display: grid; gap: 6px; margin-top: auto; }
+  .dec div { padding: 9px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 13px; }
+  .dec .yes { background: var(--lime); color: #111; } .dec .no { background: rgba(255,255,255,.08); } .dec .more { background: rgba(91,140,255,.3); }
+
+  /* 10 usp */
+  .usp { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 8px; align-items: start; }
+  .strikes { display: grid; gap: 14px; }
+  .strike { font-size: 36px; font-weight: 800; color: var(--muted); text-decoration: line-through; text-decoration-color: var(--coral); text-decoration-thickness: 5px; }
+  .one { margin-top: 22px; font-size: 40px; font-weight: 900; line-height: 1.1; }
+  .one span { color: var(--lime); }
+  .redlines { border: 2px solid var(--coral); border-radius: 20px; padding: 20px 24px; background: rgba(255,107,107,.06); }
+  .redlines h3 { color: var(--coral); margin-bottom: 8px; }
+  .redlines li { font-size: 18px; }
+  .principle { margin-top: 20px; font-size: 19px; line-height: 1.4; color: var(--muted); font-style: italic; }
+
+  /* 11 matrix */
+  table.matrix { width: 100%; border-collapse: separate; border-spacing: 0 6px; margin-top: 2px; font-size: 17px; }
+  .matrix th { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; text-align: center; padding: 6px 10px; }
+  .matrix th:first-child { text-align: left; }
+  .matrix td { background: var(--card); padding: 11px 12px; text-align: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .matrix td:first-child { text-align: left; font-weight: 700; border-left: 1px solid var(--line); border-radius: 14px 0 0 14px; }
+  .matrix td:last-child { border-right: 1px solid var(--line); border-radius: 0 14px 14px 0; }
+  .matrix tr.us td { background: rgba(200,255,61,.12); border-color: rgba(200,255,61,.5); font-weight: 800; }
+  .matrix th.hl, .matrix td.hl { color: var(--lime); }
+  .yes { color: #cfd3f5; } .no { color: rgba(163,167,201,.45); } .star { color: var(--lime); font-weight: 900; }
+
+  /* 12 market */
+  .market { display: grid; grid-template-columns: 1fr 380px; gap: 36px; margin-top: 6px; }
+  .mrow { margin: 8px 0 18px; }
+  .mrow .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+  .mrow .lbl b { font-size: 32px; letter-spacing: -.02em; white-space: nowrap; }
+  .mrow .lbl span { font-size: 15px; color: var(--muted); text-align: right; }
+  .som { border-radius: 20px; background: var(--card); border: 1px solid var(--line); padding: 20px 22px; }
+  .som h3 { margin-bottom: 10px; }
+  .lvl { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 18px; }
+  .lvl:last-child { border-bottom: 0; }
+  .lvl b { font-size: 22px; }
+  .lvl .pct { color: var(--muted); }
+
+  /* 13 vtb */
+  .vtb { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 8px; }
+  .eq { padding: 16px 22px; border-radius: 18px; background: var(--card-2); border: 1px solid var(--line); font-size: 20px; line-height: 1.45; margin-bottom: 12px; }
+  .eq b { color: var(--lime); }
+  .eq .op { color: var(--muted); padding: 0 6px; }
+  .list { display: grid; gap: 8px; }
+  .list div { display: flex; gap: 12px; align-items: flex-start; font-size: 18px; line-height: 1.35; padding: 10px 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+  .list div::before { content: "☐"; color: var(--lime); font-weight: 900; }
+  .chan { margin-top: 12px; font-size: 17px; color: var(--muted); line-height: 1.4; }
+  .chan b { color: var(--text); }
+
+  /* 14 metrics */
+  .tree { margin-top: 8px; }
+  .nsm { margin: 0 auto; max-width: 820px; padding: 18px 24px; border-radius: 18px; background: var(--lime); color: #111; text-align: center; }
+  .nsm b { display: block; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
+  .nsm h3 { font-size: 26px; margin: 4px 0 6px; }
+  .nsm p { font-size: 16px; color: #333; }
+  .branches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 22px; position: relative; }
+  .branches::before { content: ""; position: absolute; left: 12.5%; right: 12.5%; top: -12px; height: 2px; background: rgba(255,255,255,.2); }
+  .branch { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; position: relative; }
+  .branch::before { content: ""; position: absolute; left: 50%; top: -12px; width: 2px; height: 12px; background: rgba(255,255,255,.2); }
+  .branch h3 { font-size: 19px; margin-bottom: 4px; }
+  .branch p { font-size: 15px; color: var(--muted); }
+  .funnel { display: flex; gap: 6px; margin-top: 24px; align-items: stretch; }
+  .funnel div { flex: 1; padding: 10px 8px; font-size: 12px; line-height: 1.3; text-align: center; background: rgba(91,140,255,.22); border-radius: 8px; color: #dfe6ff; display: grid; place-items: center; }
+  .funnel div:nth-child(n+5) { background: rgba(200,255,61,.16); }
+  .funnel div:last-child { background: rgba(255,200,87,.18); }
+
+  /* 15 levels */
+  .levels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 6px; }
+  .levels .card li { font-size: 17px; }
+  .levels .card h3 small { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 2px; }
+  .guard { margin-top: 16px; border-radius: 18px; border: 2px solid var(--coral); background: rgba(255,107,107,.07); padding: 14px 20px; display: grid; grid-template-columns: 170px 1fr; gap: 16px; align-items: center; }
+  .guard h3 { color: var(--coral); font-size: 18px; line-height: 1.2; }
+  .traps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .traps div { font-size: 13px; line-height: 1.3; color: #ffd0d0; }
+  .traps div b { display: block; font-size: 22px; margin-bottom: 4px; }
+
+  /* 16 final */
+  .final3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 6px; }
+  .final3 .card h3 { color: var(--lime); }
+  .next { margin-top: 18px; padding: 16px 22px; border-radius: 16px; background: var(--card-2); border: 1px solid var(--line); font-size: 19px; line-height: 1.4; }
+  .next b { color: var(--amber); }
+  .cta { margin-top: auto; display: flex; align-items: center; gap: 24px; }
+  .cta img { width: 72px; height: 72px; border-radius: 20px; }
+  .cta .handle { font-size: 44px; font-weight: 900; letter-spacing: -.02em; }
+  .cta .handle span { color: var(--lime); }
+  .cta .sticker { margin-left: auto; }
+
+  /* print */
+  @media print {
+    @page { size: 1280px 720px; margin: 0; }
+    html, body { overflow: visible; background: var(--bg); }
+    .stage { position: static; display: block; }
+    .deck { transform: none !important; width: var(--W); height: var(--H); }
+    .slide { position: relative; display: flex !important; page-break-after: always; break-after: page; height: var(--H); }
+    .in { opacity: 1 !important; transform: none !important; animation: none !important; }
+    .xp > i { width: var(--w) !important; transition: none; }
+    .progress, .counter, .hint, .notes { display: none !important; }
+    .slide::after { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="stage"><div class="deck" id="deck">
+
+<!-- 1 -->
+<section class="slide title" data-n="01">
+  <img class="logo in" src="../../design/ico/app_icon.png" alt="Fin Bridge" onerror="this.style.display='none'">
+  <h1 class="in" style="margin-top:22px">Fin <span>Bridge</span></h1>
+  <p class="sub in">Квесты про бюджет и неожиданные траты.<br>Вместе с семьёй.</p>
+  <div class="meta in">
+    <span>Для семей с детской картой ВТБ</span><span>·</span>
+    <span>Вход через Telegram: <b class="lime">@fin_brdg_bot</b></span><span>·</span>
+    <span>Хакатон · прототип за 3 дня</span>
+  </div>
+  <div class="sticker">деньги учебные — кайф настоящий</div>
+  <aside class="speaker">Привет. Мы — Fin Bridge. Мы делаем квесты про деньги, которые проходит не подросток и не родитель, а семья. Сейчас покажем, зачем это нужно и как это работает.</aside>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-n="02">
+  <div class="kicker">Сцена</div>
+  <h2>«Мам, скинь 250 на кино»</h2>
+  <p class="lead">Этот диалог идёт в миллионах семей каждую неделю — и каждый раз заканчивается одинаково.</p>
+  <div class="body">
+    <div class="chat">
+      <div class="bubble teen in">Мам, скинь 250 на кино, все идут 🎬</div>
+      <div class="bubble parent in">А на что ушли те 500, что я давала в понедельник?</div>
+      <div class="bubble teen in">…</div>
+      <div class="bubble parent in">Вот и я о том же.</div>
+    </div>
+    <div class="gameover">
+      <div class="go">GAME OVER</div>
+      <div class="retry">↻ try again next week</div>
+    </div>
+    <p class="fine">Обе стороны правы. Обе проигрывают: разговор каждый раз начинается с нуля и заканчивается ничем.</p>
+  </div>
+  <aside class="speaker">Подросток хочет сам решать, куда деньги. Родитель хочет быть уверен, что их не спустят за день. Обе стороны правы — и обе проигрывают: разговор каждый раз начинается с нуля и заканчивается ничем.</aside>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-n="03">
+  <div class="kicker">Проблема</div>
+  <h2>Не «подросток не умеет считать». У семьи нет механизма передачи ответственности</h2>
+  <div class="body">
+    <div class="stairs">
+      <div class="step s1 in">
+        <div class="lvl">Уровень 1 · Потребность <span class="badge int">интервью</span></div>
+        <h3>Подросток хочет сам</h3>
+        <p>Выбирать, принимать решения, понимать границы своей самостоятельности.</p>
+      </div>
+      <div class="step s2 in">
+        <div class="lvl">Уровень 2 · Препятствие <span class="badge int">интервью</span></div>
+        <h3>Родитель не уверен, что готов</h3>
+        <p>Боится необдуманных трат и того, что подросток не спланирует расходы.</p>
+      </div>
+      <div class="step s3 in">
+        <div class="lvl">Уровень 3 · Продуктовая проблема <span class="badge hyp">гипотеза</span></div>
+        <div class="lock">🔒</div>
+        <h3>Нет инструмента передачи контроля</h3>
+        <p>Лимиты, проверка покупок, деньги «по запросу» — есть у всех. Но ни один не учит семью договариваться, какие решения подросток уже может принимать сам.</p>
+      </div>
+    </div>
+    <p class="fine">Первые два уровня подтверждены интервью. Третий — наша главная гипотеза: родителю дают инструменты контроля, но не дают инструмент передачи контроля.</p>
+  </div>
+  <aside class="speaker">Мы раскладываем проблему на три уровня. Первые два подтвердили интервью. Третий — наша главная гипотеза: родителю сегодня дают инструменты контроля, но не дают инструмента передачи контроля. Именно его мы и строим.</aside>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-n="04">
+  <div class="kicker">Discovery</div>
+  <h2>Концепцию не придумали — собрали из разговоров с семьями</h2>
+  <div class="body">
+    <div class="iv">
+      <div>
+        <div class="big ten in">10</div>
+        <p class="cap in">глубинных интервью: подростки 13–17 и родители, часть — из одних семей</p>
+        <p class="so in">Что это дало: подростку нужен способ <b class="lime">показать план</b>, родителю — <b class="lime">на что опереться</b>, обоим — <b class="lime">правила, которые можно менять</b>.</p>
+      </div>
+      <div>
+        <div class="hlist">
+          <div class="in"><b>H1</b> Самостоятельность — да. Подростки называют конкретные случаи, когда хотели решить сами.</div>
+          <div class="in"><b>H2</b> Делегировать трудно. Родители объясняют, почему проверяют и ограничивают.</div>
+          <div class="in"><b>H3</b> Устойчивых правил нет. Семьи возвращаются к одним и тем же спорам.</div>
+        </div>
+        <div class="quotes" style="margin-top:14px">
+          <div class="quote q1 in">«Я не против давать больше. Я просто не вижу, по чему понять, что уже можно»<small>родитель</small></div>
+          <div class="quote q2 in">«Мне проще не спрашивать, чем каждый раз объяснять, зачем»<small>подросток, 15</small></div>
+          <div class="quote q3 in">«Правил нет. Есть настроение»<small>подросток, 16</small></div>
+          <div class="quote q4 in">«Я сама не знаю, как это объяснять. Меня никто не учил»<small>родитель</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="speaker">Мы провели десять интервью. Три вещи повторялись: подросток хочет решать сам, родитель хочет понимать, на чём основано доверие, и ни у кого нет устойчивых правил — есть настроение. Отсюда родилась концепция: не рейтинг доверия, а квесты и договорённости.</aside>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-n="05">
+  <div class="kicker">Доказательная база</div>
+  <h2>Рынок это подтверждает <span class="badge fact">факты</span></h2>
+  <div class="body">
+    <div class="ach">
+      <div class="card in">
+        <div class="num lime">75%</div>
+        <h3>хотят учиться</h3>
+        <p>подростков 14–17 хотят повысить финграмотность. При этом только <b>42%</b> считают свои навыки достаточными.</p>
+        <div class="src">НАФИ, 2021 · n = 412</div>
+      </div>
+      <div class="card in">
+        <div class="num coral">⅓</div>
+        <h3>низкий уровень</h3>
+        <p>школьников и студентов 15–19 показали низкий уровень финграмотности. Финансовая автономия — <b>3,8 из 9</b>.</p>
+        <div class="src">НИУ ВШЭ, конец 2023 · городские учащиеся</div>
+      </div>
+      <div class="card in">
+        <div class="num blue">96%</div>
+        <h3>уже в цифре</h3>
+        <p>молодёжи 14–22 пользуются финтехом (91% в 2022). Индекс финграмотности молодёжи: 55 → 62 за 7 лет.</p>
+        <div class="src">Банк России, 2024</div>
+      </div>
+      <div class="card in">
+        <div class="num amber">👪</div>
+        <h3>семья решает</h3>
+        <p>подростки, которые обсуждают траты с родителями, показывают более высокую финграмотность.</p>
+        <div class="src">OECD PISA 2022 · корреляция, не причинность</div>
+      </div>
+    </div>
+    <p class="fine">Открытые данные подтверждают потребность в практике и готовность цифрового канала. Сам конфликт «свобода vs контроль» публичными исследованиями не измерен — его подтверждают наши интервью.</p>
+  </div>
+  <aside class="speaker">Открытые данные говорят: подростки хотят учиться, но у трети низкий уровень; все они уже в цифре; и разговоры с родителями — один из сильнейших факторов. Мы просто делаем эти разговоры предметными.</aside>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-n="06">
+  <div class="kicker">JTBD · выбери героя</div>
+  <h2>Два пользователя — одна работа: договориться о самостоятельности</h2>
+  <div class="body">
+    <div class="heroes">
+      <div class="hero teen in">
+        <div class="av">🧑‍🎤</div>
+        <h3>Подросток, 14–17</h3>
+        <div class="js">
+          <b>Когда</b><span>хочу купить, накопить на своё или сам распределить карманные</span>
+          <b>Хочу</b><span>решать сам и не спрашивать разрешения по каждой мелочи</span>
+          <b>Но</b><span>родители ограничивают — не уверены, что распоряжусь правильно</span>
+          <b>Нужен</b><span class="need">способ планировать, видеть последствия и аргументированно просить больше свободы</span>
+        </div>
+      </div>
+      <div class="hero parent in">
+        <div class="av">🧑‍💼</div>
+        <h3>Родитель подростка</h3>
+        <div class="js">
+          <b>Когда</b><span>подросток просит больше денег или хочет сам распоряжаться бюджетом</span>
+          <b>Хочу</b><span>постепенно передавать ответственность без страха, что всё потратят бездумно</span>
+          <b>Но</b><span>не понимаю, готов ли он, и не всегда знаю, как объяснять финансовые решения</span>
+          <b>Нужен</b><span class="need">инструмент, где подросток учится на практике, а я обсуждаю результат и правила</span>
+        </div>
+      </div>
+    </div>
+    <p class="fine">Сегментация по задачам и поведению, не только по возрасту: если подросток не распоряжается деньгами или родитель не хочет делегировать — ценность ниже.</p>
+  </div>
+  <aside class="speaker">У подростка и родителя разные job stories, но они сходятся в одной точке: обоим нужен понятный, предметный способ договориться.</aside>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-n="07">
+  <div class="kicker">Главная гипотеза</div>
+  <h2>Если подросток планирует и объясняет, а родитель видит и договаривается — делегировать проще</h2>
+  <div class="body">
+    <div class="formula">
+      <div class="box b1 in"><small>Подросток</small>практика + объяснение решения</div>
+      <div class="arrow in">→</div>
+      <div class="box b2 in"><small>Родитель</small>видимый результат + договорённость о правилах</div>
+      <div class="arrow in">→</div>
+      <div class="box b3 in"><small>Семья</small>проще делегировать</div>
+    </div>
+    <div class="checks">
+      <div class="check in"><i>1</i><span>Механика помогает подростку <b>объяснять</b> финансовые решения.</span></div>
+      <div class="check in"><i>2</i><span>Результат помогает родителю <b>делегировать</b> хотя бы одну категорию расходов.</span></div>
+    </div>
+    <div class="question">Главный вопрос защиты: <b>готов ли родитель рассмотреть изменение правил</b>, увидев, как подросток планирует бюджет и объясняет выбор?</div>
+    <p class="fine"><span class="badge hyp">честный риск</span> Если работает только часть 1 — у нас хороший тренажёр финграмотности, но не мост. Тогда позиционирование придётся пересмотреть.</p>
+  </div>
+  <aside class="speaker">Вот гипотеза целиком. Она из двух частей, и вторая важнее первой. Если подростки учатся, а родители ничего не меняют — гипотеза не подтверждена, и мы это честно скажем.</aside>
+</section>
+
+<!-- 8 -->
+<section class="slide" data-n="08">
+  <div class="kicker">Как работает</div>
+  <h2>Петля из четырёх шагов. Без последнего — игра. Без первых трёх — панель контроля</h2>
+  <div class="body">
+    <div class="loopwrap">
+      <div class="loop">
+        <div class="node n1 in"><b>1 · Ситуация</b><h3>Неделя на 1 500 ₽</h3><p>Реальный учебный бюджет, пять категорий.</p></div>
+        <div class="node n2 in"><b>2 · Решение</b><h3>Подросток выбирает</h3><p>Расходы, накопления, резерв. Или «ой, кино».</p></div>
+        <div class="node n3 in"><b>3 · Последствия</b><h3>Что изменилось</h3><p>Дефицит, цена выбора, освоенный навык.</p></div>
+        <div class="node n4 in"><b>4 · Договорённость</b><h3>Новое правило семьи</h3><p>Подросток предлагает, родитель решает. Условия меняются у обоих.</p></div>
+        <div class="ring">🔁</div>
+      </div>
+      <div>
+        <div class="phones in">
+          <div class="phone"><div class="who">Подросток</div><div class="l w80"></div><div class="l"></div><div class="l w60"></div><div class="btn">Начать квест</div><div class="tg">свой Telegram</div></div>
+          <div class="phone parent"><div class="who">Родитель</div><div class="l"></div><div class="l w60"></div><div class="l w80"></div><div class="btn">Договорились</div><div class="tg">свой Telegram</div></div>
+        </div>
+        <p class="fine" style="margin-top:14px">Один бот <b class="lime">@fin_brdg_bot</b>, два аккаунта, два интерфейса. Роль — по аккаунту. Без переключателей, без паролей.</p>
+      </div>
+    </div>
+  </div>
+  <aside class="speaker">Механика — петля. Ситуация, решение, последствия, договорённость. Ключевой — четвёртый шаг: именно он превращает обучение в изменение правил семьи. Каждый заходит со своего Telegram — никаких переключателей, никаких паролей.</aside>
+</section>
+
+<!-- 9 -->
+<section class="slide" data-n="09">
+  <div class="kicker">Демо · MVP за 3 дня</div>
+  <h2>Сквозной сценарий уже работает</h2>
+  <div class="body">
+    <div class="demo">
+      <div class="screen in">
+        <div class="t">Квест 1</div><h3>Неделя на 1 500 ₽</h3>
+        <div class="bar"><span>Транспорт</span><span>300</span><div class="tr"><i style="width:20%"></i></div></div>
+        <div class="bar"><span>Обеды</span><span>500</span><div class="tr"><i style="width:33%"></i></div></div>
+        <div class="bar"><span>Развлечения</span><span>400</span><div class="tr"><i style="width:27%"></i></div></div>
+        <div class="bar"><span>Накопления</span><span>150</span><div class="tr"><i style="width:10%;background:var(--coral)"></i></div></div>
+        <div class="bar"><span>Резерв</span><span>100</span><div class="tr"><i style="width:7%"></i></div></div>
+        <div class="err">Не сходится — не хватает 50 ₽. Накопления минимум 200.</div>
+      </div>
+      <div class="screen in">
+        <div class="t">Квест 2</div><h3>Ой, кино. Билет 250 ₽</h3>
+        <div class="opt">Урезать развлечения <span>400 → 150</span></div>
+        <div class="opt pick">Взять из накоплений <span>200 → −50</span></div>
+        <div class="opt">Взять из резерва <span>100 → −150</span></div>
+        <div class="opt">Не пойти <span>план цел</span></div>
+        <div class="err">Из накоплений не хватит 50 ₽ — дефицит к плану.</div>
+      </div>
+      <div class="screen in">
+        <div class="t">Предложить правило</div><h3>Развлечения 400 → 500 ₽</h3>
+        <div class="msg">«Два квеста прошёл, минимумы держу. На кино и кафе с друзьями 400 не хватает, остальное не трогаю».</div>
+        <div class="status">⏳ Семья ещё не решила — действуют старые условия</div>
+      </div>
+      <div class="screen in">
+        <div class="t">Экран родителя</div><h3>Предложение от Макса</h3>
+        <div class="msg">Квест 1 ✓ · Квест 2 ✓ · навык: планирование бюджета</div>
+        <div class="msg">Было 400 → предлагает 500. Аргумент прочитан.</div>
+        <div class="dec"><div class="yes">Договорились</div><div class="more">Расскажи ещё</div><div class="no">Не сейчас</div></div>
+      </div>
+    </div>
+    <p class="fine">Ошибки конкретные, не «ошибка валидации». У сюрприза нет единственно правильного ответа — показываем цену каждого хода. Решение родителя с комментарием тут же видно подростку; при «договорились» правила обновляются у обоих.</p>
+  </div>
+  <aside class="speaker">Покажу на демо. Подросток раскидывает полторы тысячи на неделю — приложение проверяет минимумы и говорит конкретно, чего не хватает. Потом сюрприз: друг зовёт в кино. Четыре варианта, у каждого своя цена. Дальше подросток предлагает: давайте на развлечения 500, вот почему. Родитель видит план, результаты, аргумент — и решает. Всё это уже в прототипе.</aside>
+</section>
+
+<!-- 10 -->
+<section class="slide" data-n="10">
+  <div class="kicker">УТП</div>
+  <h2>Не уроки. Не контроль. Не рейтинг. Мост</h2>
+  <div class="body">
+    <div class="usp">
+      <div>
+        <div class="strikes">
+          <div class="strike in">уроки финграмотности</div>
+          <div class="strike in">родительский контроль</div>
+          <div class="strike in">рейтинг доверия</div>
+        </div>
+        <div class="one in">решение → последствия → <span>новые правила семьи</span></div>
+        <p class="principle in">«Не присваивать подростку рейтинг доверия, а дать семье инструмент для обучения, обсуждения и согласования границ самостоятельности».</p>
+      </div>
+      <div class="redlines in">
+        <h3>Чего мы принципиально не делаем</h3>
+        <ul>
+          <li>Trust-score подростка и любые «оценки зрелости»</li>
+          <li>Автоматическое повышение лимитов по результатам квестов</li>
+          <li>Ярлыки вроде «финансово незрелый»</li>
+          <li>Деньги за выполнение заданий</li>
+          <li>Решение без семьи: последнее слово — у родителя, но сначала разговор</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <aside class="speaker">Наше отличие — не в квестах и не в уроках, их много. Отличие — в связке: решение, последствия, новое правило. И в том, чего мы не делаем: мы не ставим подростку оценку доверия. Решение остаётся за семьёй.</aside>
+</section>
+
+<!-- 11 -->
+<section class="slide" data-n="11">
+  <div class="kicker">Конкуренты</div>
+  <h2>Платежи и контроль есть у всех. Договорённостей о самостоятельности — ни у кого</h2>
+  <div class="body">
+    <table class="matrix">
+      <thead><tr><th></th><th>Платежи</th><th>Лимиты родителя</th><th>Задания за деньги</th><th>Обучение / игры</th><th class="hl">Договорённости о самостоятельности</th></tr></thead>
+      <tbody>
+        <tr><td>ВТБ · Детская карта</td><td class="yes">●</td><td class="yes">●</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+        <tr><td>Т-Банк · Джуниор</td><td class="yes">●</td><td class="yes">●</td><td class="yes">●</td><td class="yes">◐</td><td class="no">—</td></tr>
+        <tr><td>СберKids</td><td class="yes">●</td><td class="yes">●</td><td class="yes">●</td><td class="yes">●</td><td class="no">—</td></tr>
+        <tr><td>Альфа · детское</td><td class="yes">●</td><td class="yes">●</td><td class="no">—</td><td class="yes">●</td><td class="no">—</td></tr>
+        <tr class="us"><td>Fin Bridge</td><td class="no">учебные</td><td class="yes">через правила</td><td class="no">нет — принципиально</td><td class="yes">●</td><td class="star">★ да</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">Позиция: <b class="lime">надстройка к детской карте ВТБ</b>, а не ещё одно детское приложение. <span class="badge hyp">гипотеза</span> Сравнение по публичным описаниям продуктов; полные пользовательские пути не сравнивались.</p>
+  </div>
+  <aside class="speaker">У банков уже есть карты, лимиты, задания за деньги, игры. Мы специально не делаем платежи и не платим за задания. Мы закрываем единственную пустую колонку — договорённости. И для ВТБ мы не конкурент детской карте, а причина ею пользоваться дольше.</aside>
+</section>
+
+<!-- 12 -->
+<section class="slide" data-n="12">
+  <div class="kicker">Аудитория и рынок · клиентское решение</div>
+  <h2>6,2 млн подростков уже с картой. Нужен не ещё один продукт, а повод пользоваться вместе</h2>
+  <div class="body">
+    <div class="market">
+      <div>
+        <div class="mrow in">
+          <div class="lbl"><b>10,6 млн <span class="badge fact">факт</span></b><span>TAM · подростки 12–17 в России · Росстат, 01.01.2025</span></div>
+          <div class="xp"><i style="--w:100%"></i></div>
+        </div>
+        <div class="mrow in">
+          <div class="lbl"><b>6,9 млн <span class="badge fact">факт</span></b><span>Сегмент 14–17 · планирование, аргументация, подготовка к независимости</span></div>
+          <div class="xp"><i style="--w:65%"></i></div>
+        </div>
+        <div class="mrow in">
+          <div class="lbl"><b>≈ 6,2 млн <span class="badge fact">оценка</span></b><span>SAM · 14–17 с банковской картой · проникновение ~90%, Frank RG 2024</span></div>
+          <div class="xp"><i style="--w:58%"></i></div>
+        </div>
+      </div>
+      <div class="som in">
+        <h3>SOM · выбери уровень сложности <span class="badge hyp">сценарий</span></h3>
+        <div class="lvl"><span>Осторожный</span><span class="pct">1% SAM</span><b>62 тыс.</b></div>
+        <div class="lvl"><span>Средний</span><span class="pct">3% SAM</span><b>185 тыс.</b></div>
+        <div class="lvl"><span>Амбициозный</span><span class="pct">5% SAM</span><b>309 тыс.</b></div>
+        <p style="font-size:14px;color:var(--muted);margin-top:10px">семей · сценарная арифметика, не прогноз</p>
+      </div>
+    </div>
+    <p class="fine">Денежный объём рынка не считаем: модель монетизации не определена, прямой тариф с семьи не обязателен. Доли SOM появятся после проверки каналов, конверсии и удержания.</p>
+  </div>
+  <aside class="speaker">Десять с половиной миллионов подростков, семь из них — наш сегмент, шесть с лишним уже с картой. SOM мы не выдумываем: показываем сценарии от одного до пяти процентов и честно говорим — это арифметика, цифры появятся после проверки каналов.</aside>
+</section>
+
+<!-- 13 -->
+<section class="slide" data-n="13">
+  <div class="kicker">Охват · внутреннее решение для ВТБ</div>
+  <h2>Не «сколько подростков в России», а «сколько своих семей активировать через свой канал»</h2>
+  <div class="body">
+    <div class="vtb">
+      <div>
+        <div class="eq in"><b>доступная аудитория</b> <span class="op">=</span> активные детские клиенты 12–17 <span class="op">×</span> доля доступных для коммуникации</div>
+        <div class="eq in"><b>активные семьи</b> <span class="op">=</span> охват <span class="op">×</span> конверсия в активацию</div>
+        <p class="chan in"><span class="badge fact">факт</span> ВТБ выпустил <b>400 тыс.+</b> детских карт за 2024 год. Это выпуск за год, не активная база — поэтому мы показываем формулу, а не цифру.</p>
+        <p class="chan in"><b>Канал:</b> приложение родителя ВТБ → приглашение → @fin_brdg_bot / Web App. Без бюджета на покупку аудитории.</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom:10px">Что запросить у банка</h3>
+        <div class="list">
+          <div class="in">Активные детские карты по возрастам 12–17</div>
+          <div class="in">Связанные профили родитель – подросток</div>
+          <div class="in">Доля клиентов, доступных в цифровом канале</div>
+          <div class="in">Число семей под целевой сценарий</div>
+          <div class="in">Согласия и правила взаимодействия с несовершеннолетними</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="speaker">Внутри банка экономика другая: вам не нужно покупать аудиторию, она уже в приложении родителя. Для точной цифры нужна ваша база — мы показываем формулу и список, что для неё нужно.</aside>
+</section>
+
+<!-- 14 -->
+<section class="slide" data-n="14">
+  <div class="kicker">Продуктовые метрики</div>
+  <h2>Не «активные подростки», а «активные семейные пары» — иначе гипотеза не проверяется</h2>
+  <div class="body tree">
+    <div class="nsm in">
+      <b>North Star</b>
+      <h3>Активные семейные пары за неделю</h3>
+      <p>подросток завершил сценарий → результат доступен родителю → родитель рассмотрел → решение зафиксировано</p>
+    </div>
+    <div class="branches">
+      <div class="branch in"><h3>Активация</h3><p>Семья начала и завершила первый квест</p></div>
+      <div class="branch in"><h3>Удержание</h3><p>Семья вернулась к следующему сценарию</p></div>
+      <div class="branch in"><h3>Обучение</h3><p>Подросток объясняет последствия выбора; перенос навыка на новые числа</p></div>
+      <div class="branch in"><h3>Договорённости</h3><p>Родитель рассматривает предложения; оценивается вместе с качеством аргумента</p></div>
+    </div>
+    <div class="funnel in">
+      <div>Охват</div><div>Старт первого сценария</div><div>Квест завершён</div><div>Родитель открыл результат</div><div>Предложение рассмотрено</div><div>Повтор на следующей неделе</div><div>Бизнес-эффект vs контрольная группа</div>
+    </div>
+    <p class="fine">Единица учёта — уникальная семья, не экран и не клик. Факт настоящего разговора по кнопке не установить — в MVP фиксируем завершение квеста, просмотр родителем и решение.</p>
+  </div>
+  <aside class="speaker">Главная метрика — семейные пары, которые прошли связанный сценарий за неделю. Если подростки играют, а родители не заходят — продукт не работает, какой бы ни был DAU. Под ней четыре ветки: активация, удержание, обучение, договорённости.</aside>
+</section>
+
+<!-- 15 -->
+<section class="slide" data-n="15">
+  <div class="kicker">Что меряем</div>
+  <h2>За три дня не доказать удержание. Зато можно доказать понятность и желание продолжать</h2>
+  <div class="body">
+    <div class="levels">
+      <div class="card in">
+        <h3><small>Level 1 · прототип, 3 дня</small>Меряем на хакатоне</h3>
+        <ul>
+          <li>Доля завершивших квест без помощи команды</li>
+          <li>Доля верных расчётов бюджета</li>
+          <li>Доля подростков, объяснивших последствия выбора</li>
+          <li>Доля родителей, правильно понявших предложение и правила</li>
+          <li>Доля семей, которые хотят следующий сценарий</li>
+        </ul>
+      </div>
+      <div class="card alt in">
+        <h3><small>Level 2 · пилот <span class="badge pilot">пилот</span></small>Меряем на реальном использовании</h3>
+        <ul>
+          <li>Активные семейные пары в неделю</li>
+          <li>Возврат семьи на следующей неделе, повторные сценарии</li>
+          <li>Качество решений до / после на сопоставимых задачах</li>
+          <li>Готовность родителей делегировать конкретную категорию</li>
+          <li>Влияние на детские продукты ВТБ vs контрольная группа</li>
+        </ul>
+      </div>
+    </div>
+    <div class="guard in">
+      <h3>Guardrails: чего нельзя допустить, даже если вовлечённость растёт</h3>
+      <div class="traps">
+        <div><b>🕵️</b>подросток видит в нас ещё один родительский контроль</div>
+        <div><b>🏷️</b>родитель читает результат как рейтинг ребёнка</div>
+        <div><b>❓</b>непонятно, почему «не сейчас»</div>
+        <div><b>🧮</b>ошибки в арифметике бюджета</div>
+        <div><b>⚖️</b>минус за математически допустимое решение</div>
+      </div>
+    </div>
+    <p class="fine">Целевые значения ставим после базовых замеров, а не «70% одобрений» из воздуха.</p>
+  </div>
+  <aside class="speaker">Честно: за три дня мы меряем понятность и желание продолжать, а удержание и поведение — на пилоте. И есть вещи, которые мы считаем провалом даже при росте вовлечённости — если подросток почувствует, что это ещё одна форма контроля.</aside>
+</section>
+
+<!-- 16 -->
+<section class="slide" data-n="16">
+  <div class="kicker">Ценность для ВТБ</div>
+  <h2>Детская карта — не только платёж и лимит, а повод для семьи оставаться с банком <span class="badge hyp">гипотезы</span></h2>
+  <div class="body">
+    <div class="final3">
+      <div class="card in"><h3>Удержание</h3><p>У семьи появляется причина продолжать пользоваться детским продуктом — общая история, а не только переводы.</p></div>
+      <div class="card in"><h3>Вовлечённость</h3><p>Подросток заходит не только заплатить: квест, сюрприз, предложение правила.</p></div>
+      <div class="card in"><h3>Привлечение</h3><p>Семьи рекомендуют семьям. Проверяется на данных банка, не декларируется.</p></div>
+    </div>
+    <div class="next in"><b>Следующий шаг:</b> пилот на связанных профилях родитель – подросток в приложении ВТБ, 4–6 недель, метрики уровня 2, контрольная группа.</div>
+    <div class="cta in">
+      <img src="../../design/ico/app_icon.png" alt="" onerror="this.style.display='none'">
+      <div class="handle">@fin_brdg_bot — <span>погнали</span></div>
+      <div class="sticker coral">деньги учебные — разговор настоящий</div>
+    </div>
+  </div>
+  <aside class="speaker">Для ВТБ это способ сделать детскую карту частью семейного разговора, а не только платежом. Мы предлагаем пилот на ваших связанных профилях. Прототип работает уже сейчас — @fin_brdg_bot, погнали.</aside>
+</section>
+
+</div></div>
+
+<div class="counter" id="counter"></div>
+<div class="hint">← → листать · N заметки · F полный экран</div>
+<div class="notes" id="notes"></div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const deck = document.getElementById('deck');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  const notes = document.getElementById('notes');
+  let i = 0;
+
+  function fit() {
+    const s = Math.min(innerWidth / 1280, innerHeight / 720);
+    deck.style.transform = 'scale(' + s + ')';
+  }
+  function show(n, push) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    progress.style.width = ((i + 1) / slides.length * 100) + '%';
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    const sp = slides[i].querySelector('.speaker');
+    notes.innerHTML = '<b>Слайд ' + (i + 1) + '</b> · ' + (sp ? sp.innerHTML : '');
+    if (push !== false) history.replaceState(null, '', '#' + (i + 1));
+  }
+  function fromHash() {
+    const n = parseInt(location.hash.slice(1), 10);
+    show(isNaN(n) ? 0 : n - 1, false);
+  }
+
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') show(0);
+    else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key === 'n' || e.key === 'N' || e.key === 'т' || e.key === 'Т') notes.classList.toggle('open');
+    else if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    }
+  });
+  let x0 = null;
+  addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+  });
+  addEventListener('click', (e) => {
+    if (notes.contains(e.target)) return;
+    if (e.clientX > innerWidth * 0.8) show(i + 1);
+    else if (e.clientX < innerWidth * 0.2) show(i - 1);
+  });
+  addEventListener('resize', fit);
+  addEventListener('hashchange', fromHash);
+  fit(); fromHash();
+})();
+</script>
+</body>
+</html>
