@@ -8,6 +8,7 @@
 |----------|----------------|
 | [product-specs/index.md](product-specs/index.md) | Любая фича, копирайт, сценарии |
 | [PRODUCT.md](PRODUCT.md) | Полная спецификация MVP |
+| [TELEGRAM_BOT.md](TELEGRAM_BOT.md) | Тексты @fin_brdg_bot, BotFather, маркетинг |
 
 ## Архитектура и качество
 
@@ -16,6 +17,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Новые модули, импорты, слои |
 | [QUALITY.md](QUALITY.md) | Перед PR, проверки |
 | [design-docs/core-beliefs.md](design-docs/core-beliefs.md) | Сомнения «можно ли так» |
+| [design-docs/tone-of-voice.md](design-docs/tone-of-voice.md) | Копирайт бота, UI, посты |
 
 ## Процесс
 
