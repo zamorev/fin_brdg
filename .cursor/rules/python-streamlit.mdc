@@ -1,0 +1,13 @@
+---
+description: Python и Streamlit для fin_brdg
+globs: "{app/**/*.py,src/**/*.py,tests/**/*.py}"
+alwaysApply: false
+---
+
+# Python / Streamlit
+
+- UI-тексты на русском; type hints в `src/`.
+- Страницы — отдельные файлы в `app/pages/`, не раздувать `main.py`.
+- Бизнес-правила и валидация — `src/domain`, `src/quests`; UI вызывает функции.
+- SQLite только через `src/db/`; без SQL в Streamlit-файлах.
+- Константы бюджета — только `src/domain` (см. `docs/PRODUCT.md`).
