@@ -18,6 +18,7 @@
 | [QUALITY.md](QUALITY.md) | Перед PR, проверки |
 | [design-docs/core-beliefs.md](design-docs/core-beliefs.md) | Сомнения «можно ли так» |
 | [design-docs/tone-of-voice.md](design-docs/tone-of-voice.md) | Копирайт бота, UI, посты |
+| [open-questions/README.md](open-questions/README.md) | Вопросы вне MVP, без ответа пока |
 
 ## Процесс
 
