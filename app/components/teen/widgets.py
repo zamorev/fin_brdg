@@ -92,7 +92,7 @@ def task_row(
         <div class="{row_cls}">
           <div class="{icon_cls}">{icon_svg}</div>
           <div class="fb-row-text">
-            <div class="fb-row-title">{escape(title)}</div>
+            <div class="fb-row-title">{escape(title).replace(" ₽", "&nbsp;₽")}</div>
             <div class="fb-row-sub">{escape(subtitle)}</div>
           </div>
           {right}

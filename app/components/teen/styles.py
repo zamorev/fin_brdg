@@ -26,7 +26,13 @@ _CSS = """
 .stApp, [data-testid="stHeader"] { background: var(--fb-bg); }
 [data-testid="stSidebar"] { background: var(--fb-surface); }
 [data-testid="stSidebar"] * { color: var(--fb-text); }
+[data-testid="stSidebarUserContent"] button {
+  background: transparent; border: 1px solid var(--fb-line); border-radius: 999px;
+}
+[data-testid="stSidebarUserContent"] button:hover { border-color: var(--fb-muted); }
 .stApp, .stApp p, .stApp button { font-family: var(--fb-font); color: var(--fb-text); }
+/* Streamlit sets its own font on markdown blocks; display classes below override this. */
+[class^="fb-"], [class*=" fb-"] { font-family: var(--fb-font); }
 
 [data-testid="stMainBlockContainer"] {
   max-width: 420px;
@@ -63,6 +69,8 @@ _CSS = """
   border-radius: 24px;
   padding: 4px 16px;
 }
+/* Streamlit pulls markdown blocks up by -1rem, which makes rows overlap. */
+.st-key-teen_tasks [data-testid="stMarkdownContainer"] { margin-bottom: 0 !important; }
 .fb-row { display: flex; align-items: center; gap: 14px; padding: 16px 0; }
 .fb-row-divider { border-bottom: 1px solid var(--fb-line); }
 .fb-row-icon {
@@ -101,6 +109,7 @@ _CSS = """
 }
 .fb-stub-title { font-weight: 700; font-size: 18px; }
 .fb-stub-text { color: var(--fb-muted); font-size: 14px; line-height: 1.5; margin-top: 8px; }
+.st-key-teen_back { margin-top: 8px; }
 .st-key-teen_back button {
   border: 1px solid var(--fb-line); border-radius: 999px; background: transparent; color: var(--fb-text);
 }
