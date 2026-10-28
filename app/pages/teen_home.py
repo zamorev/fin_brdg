@@ -1,10 +1,12 @@
-"""Teen home: level, weekly budget, tasks. UI only; quest 1 and agreements are stubs (T04, T06)."""
+"""Teen home: level, weekly budget, tasks. UI only; quest 1 lives in teen_quest_week, agreements are a stub (T06)."""
 
 import streamlit as st
 
 from app.components.teen import widgets
 from app.components.teen.styles import inject_styles
+from app.pages import teen_quest_week
 from src.domain.constants import DEFAULT_ALLOCATION, WEEKLY_BUDGET, Category, format_rub
+from src.quests.week_budget import QUEST_COMPLETED_KEY
 
 VIEW_KEY = "teen_view"
 VIEW_HOME = "home"
@@ -33,7 +35,9 @@ def _home() -> None:
             widgets.task_row(
                 widgets.ICON_BRIEFCASE,
                 f"Неделя на {format_rub(WEEKLY_BUDGET)}",
-                "Разложи бюджет по категориям, 5 минут",
+                "Пройден — план сохранён"
+                if st.session_state.get(QUEST_COMPLETED_KEY)
+                else "Разложи бюджет по категориям, 5 минут",
                 reserve_right=True,
             )
             st.button("Начать", key="teen_start_week", on_click=_go, args=(VIEW_QUEST_WEEK,))
@@ -65,11 +69,7 @@ def render() -> None:
 
     view = st.session_state.get(VIEW_KEY, VIEW_HOME)
     if view == VIEW_QUEST_WEEK:
-        widgets.stub_screen(
-            f"Неделя на {format_rub(WEEKLY_BUDGET)}",
-            "Скоро здесь будет квест: разложишь учебный бюджет по категориям и покажешь план семье.",
-            on_back=lambda: _go(VIEW_HOME),
-        )
+        teen_quest_week.render(on_back=lambda: _go(VIEW_HOME))
     elif view == VIEW_AGREEMENTS:
         widgets.stub_screen(
             "Мои договорённости",
