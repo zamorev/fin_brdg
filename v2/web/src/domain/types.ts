@@ -3,9 +3,12 @@ export type UserType = "teen" | "parent";
 export type OnboardingMode = "create" | "join";
 
 export type FamilyMember = {
+  telegramId: number;
   displayName: string;
   userType: UserType;
   isYou: boolean;
+  photoUrl?: string;
+  hasAvatar?: boolean;
 };
 
 export type RuleChangeRequest = {
@@ -20,7 +23,10 @@ export type RuleChangeRequest = {
 
 export type FamilyState = {
   familyId: string;
+  /** @deprecated подростковый код для совместимости */
   inviteCode: string;
+  inviteCodeParent: string;
+  inviteCodeTeen: string;
   memberCounts: { teens: number; parents: number; total: number };
   allocation: import("./budget").Allocation;
   questWeekBudgetCompleted: boolean;

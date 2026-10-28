@@ -1,7 +1,4 @@
-import {
-  inviteShareText,
-  type InviteTarget,
-} from "../telegram/bot";
+import { botInviteLink, inviteShareText, type InviteTarget, captureInviteFromTwa } from "../telegram/bot";
 import {
   createContext,
   useCallback,
@@ -15,6 +12,7 @@ import {
 interface TelegramWebApp {
   initData: string;
   initDataUnsafe?: { start_param?: string };
+  startParam?: string;
   ready: () => void;
   expand: () => void;
   openTelegramLink?: (url: string) => void;
@@ -82,6 +80,8 @@ export function TwaProvider({ children }: { children: ReactNode }) {
     if (typeof tg.disableVerticalSwipes === "function") {
       tg.disableVerticalSwipes();
     }
+    // Зафиксировать invite до любых переходов внутри TWA.
+    captureInviteFromTwa(tg);
     const content = tg.contentSafeAreaInset;
     const safe = tg.safeAreaInset;
     const contentTop = content?.top ?? 0;
@@ -184,8 +184,9 @@ export function TwaProvider({ children }: { children: ReactNode }) {
 
   const shareFamilyInvite = useCallback(
     (target: InviteTarget, inviteCode: string) => {
-      const text = inviteShareText(target, inviteCode);
-      const link = text.split("\n").pop() ?? "";
+      const text = inviteShareText(target);
+      const link = botInviteLink(inviteCode, target);
+      const payload = `${text}\n${link}`;
       if (tg?.openTelegramLink) {
         tg.openTelegramLink(
           `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`,
@@ -193,12 +194,12 @@ export function TwaProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (typeof navigator.share === "function") {
-        void navigator.share({ text }).catch(() => {
-          void navigator.clipboard?.writeText(text);
+        void navigator.share({ text: payload }).catch(() => {
+          void navigator.clipboard?.writeText(payload);
         });
         return;
       }
-      void navigator.clipboard?.writeText(text);
+      void navigator.clipboard?.writeText(payload);
       haptic("success");
     },
     [tg, haptic],

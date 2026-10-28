@@ -117,7 +117,7 @@ export function TeenHome({
               {user.family.memberCounts.teens > 1
                 ? ` · ${user.family.memberCounts.teens} подростков`
                 : ""}
-              · код приглашения
+              · пригласить
             </div>
           </span>
         </button>

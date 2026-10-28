@@ -12,13 +12,14 @@
 
 | Путь | Назначение |
 |------|------------|
-| `firebase.json`, `.firebaserc` | Hosting, каталог `web/` |
-| `web/` | Статическая оболочка Mini App (Telegram Web App SDK) |
-| `scripts/deploy-firebase-hosting.sh` | Деплой одной командой |
+| `firebase.json`, `.firebaserc` | Hosting → **`v2/web/dist`**, rewrites `/api/**` → Functions |
+| **`v2/web/`** | **Prod** Telegram Mini App (React) |
+| `web/` | Legacy-заглушка, **не** деплоится |
+| `functions/` | API v2 (onboarding, family, квесты) |
+| `scripts/deploy-firebase-hosting.sh` | Сборка v2 + deploy hosting |
+| `scripts/deploy-v2.sh` | Сборка v2 + functions + rules |
 
-**Streamlit** (`app/main.py`) на Hosting не крутится. Сейчас на Hosting — заглушка; когда появится HTTPS URL Streamlit (Cloud Run, Render и т.д.), его прописывают в `web/js/config.js` → `backendUrl` (открывается в iframe).
-
-Полноценная интеграция `initData` и роли по `telegram_id` — отдельная задача поверх бэкенда.
+Подробно: [V2.md](V2.md). Streamlit (`app/main.py`) на Hosting **не** крутится.
 
 ## Первый деплой (локально)
 

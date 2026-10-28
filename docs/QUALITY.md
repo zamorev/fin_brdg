@@ -12,11 +12,15 @@
 
 ## Ручной smoke (UI)
 
+**v1 (Streamlit):**
+
 ```bash
 streamlit run app/main.py
 ```
 
-Пройти acceptance criteria **своей** задачи из `tasks/in-progress/`.
+**v2 (Mini App):** сценарии из acceptance criteria задачи; prod — `https://fin-brdg.web.app` через @fin_brdg_bot. Онбординг/invite — [V2.md](V2.md), задачи T11/T12.
+
+Пройти acceptance criteria **своей** задачи из `tasks/in-progress/` или `tasks/done/` для v2.
 
 ## Ретро по последним коммитам
 

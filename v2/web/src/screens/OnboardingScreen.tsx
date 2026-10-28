@@ -1,40 +1,91 @@
-import { useEffect, useState } from "react";
-import { completeOnboarding } from "../api/client";
-import type { OnboardingMode, OnboardingPreview, UserType } from "../domain/types";
+import { useEffect, useRef, useState } from "react";
+import { completeOnboarding, fetchInvitePreview, joinByInvite } from "../api/client";
+import type { OnboardingPreview, UserType } from "../domain/types";
 import { MainAction } from "../components/MainAction";
 import { useTwa } from "../twa/TwaProvider";
-import { parseInviteStartParam } from "../telegram/bot";
+import {
+  captureInviteFromTwa,
+  clearStoredInvite,
+  inviteParamForApi,
+  roleHintLabel,
+  type InvitePayload,
+} from "../telegram/bot";
 
 type Props = {
   preview: OnboardingPreview;
   onDone: () => void;
 };
 
-type Step = "pick-role" | "pick-mode" | "join-code";
+type Step = "invite-join" | "pick-role" | "create-family";
 
 export function OnboardingScreen({ preview, onDone }: Props) {
   const { haptic, tg } = useTwa();
-  const [step, setStep] = useState<Step>("pick-role");
+  const inviteRef = useRef<InvitePayload | null>(captureInviteFromTwa(tg));
+  const [invite] = useState<InvitePayload | null>(() => inviteRef.current);
+  const [step, setStep] = useState<Step>(() =>
+    inviteRef.current ? "invite-join" : "pick-role",
+  );
   const [userType, setUserType] = useState<UserType | null>(null);
-  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resolvedRole, setResolvedRole] = useState<UserType | null>(
+    invite?.roleHint ?? null,
+  );
+  const joinAttempted = useRef(false);
 
   useEffect(() => {
-    const parsed = parseInviteStartParam(tg?.initDataUnsafe?.start_param);
-    if (!parsed) return;
-    setInviteCode(parsed.inviteCode);
-    if ("userType" in parsed) {
-      setUserType(parsed.userType);
-      setStep("join-code");
-    }
+    const payload = captureInviteFromTwa(tg);
+    if (payload) inviteRef.current = payload;
   }, [tg]);
 
-  const submit = async (type: UserType, mode: OnboardingMode, code?: string) => {
+  useEffect(() => {
+    if (step !== "invite-join" || !invite || joinAttempted.current) return;
+    joinAttempted.current = true;
+    setError(null);
+    setLoading(true);
+
+    void (async () => {
+      try {
+        if (!invite.roleHint) {
+          const previewRole = await fetchInvitePreview(invite.code);
+          setResolvedRole(previewRole.userType);
+        } else {
+          setResolvedRole(invite.roleHint);
+        }
+        await joinByInvite(inviteParamForApi(invite));
+        clearStoredInvite();
+        haptic("success");
+        onDone();
+      } catch (e) {
+        joinAttempted.current = false;
+        haptic("error");
+        setError(e instanceof Error ? e.message : "Не получилось войти по ссылке");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [step, invite, haptic, onDone]);
+
+  const retryInviteJoin = () => {
+    joinAttempted.current = false;
+    setError(null);
+    setStep("invite-join");
+  };
+
+  const abandonInvite = () => {
+    clearStoredInvite();
+    inviteRef.current = null;
+    joinAttempted.current = false;
+    setError(null);
+    setStep("pick-role");
+  };
+
+  const createFamily = async (type: UserType) => {
     setLoading(true);
     setError(null);
     try {
-      await completeOnboarding(type, mode, code);
+      await completeOnboarding(type, "create");
+      clearStoredInvite();
       haptic("success");
       onDone();
     } catch (e) {
@@ -45,13 +96,44 @@ export function OnboardingScreen({ preview, onDone }: Props) {
     }
   };
 
+  if (step === "invite-join" && invite) {
+    const role = resolvedRole ?? invite.roleHint;
+    return (
+      <div className="app-shell">
+        <h1 className="screen-title">Приглашение в семью</h1>
+        <p className="screen-sub">
+          {role
+            ? `По ссылке ты заходишь как ${roleHintLabel(role)} — подключим автоматически.`
+            : "Подключаем к семье по ссылке…"}
+        </p>
+        <p style={{ color: "var(--fb-hint)", fontSize: "0.875rem", marginBottom: 12 }}>
+          {preview.displayName}
+        </p>
+        {loading && !error ? (
+          <div className="loading" style={{ padding: "24px 0" }}>
+            Подключаем к семье…
+          </div>
+        ) : null}
+        {error ? (
+          <>
+            <div className="error-banner">{error}</div>
+            <MainAction text="Попробовать снова" onClick={retryInviteJoin} />
+            <button type="button" className="text-link" onClick={abandonInvite}>
+              Создать новую семью вместо этого
+            </button>
+          </>
+        ) : null}
+      </div>
+    );
+  }
+
   if (step === "pick-role") {
     return (
       <div className="app-shell">
         <h1 className="screen-title">Кто ты в Fin Bridge?</h1>
         <p className="screen-sub">Выбери свою роль — и начнём.</p>
         <p style={{ color: "var(--fb-hint)", fontSize: "0.8125rem", marginBottom: 16 }}>
-          Одна роль на этот Telegram — потом сменить нельзя.
+          Одна роль на этот Telegram — потом сменить нельзя. В семью — по ссылке от близких.
         </p>
         <p style={{ color: "var(--fb-hint)", fontSize: "0.875rem", marginBottom: 12 }}>
           {preview.displayName}
@@ -64,7 +146,7 @@ export function OnboardingScreen({ preview, onDone }: Props) {
             sub="Квесты, бюджет и финансовые решения"
             onClick={() => {
               setUserType("teen");
-              setStep(inviteCode.trim().length >= 4 ? "join-code" : "pick-mode");
+              setStep("create-family");
             }}
           />
           <RolePick
@@ -73,65 +155,10 @@ export function OnboardingScreen({ preview, onDone }: Props) {
             sub="Семейные договорённости и предложения подростка"
             onClick={() => {
               setUserType("parent");
-              setStep(inviteCode.trim().length >= 4 ? "join-code" : "pick-mode");
+              setStep("create-family");
             }}
           />
         </div>
-        {error && <div className="error-banner">{error}</div>}
-      </div>
-    );
-  }
-
-  if (step === "pick-mode" && userType) {
-    return (
-      <div className="app-shell">
-        <h1 className="screen-title">Семья</h1>
-        <p className="screen-sub">
-          {userType === "teen"
-            ? "Создай свою семью или зайди по коду — если кто-то из семьи уже внутри."
-            : "Создай семью или зайди по коду от того, кто уже в Fin Bridge."}
-        </p>
-
-        <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <button
-            type="button"
-            className="task-row"
-            style={{ borderRadius: 12, padding: 16 }}
-            disabled={loading}
-            onClick={() => void submit(userType, "create")}
-          >
-            <span className="task-icon">✨</span>
-            <span>
-              <div className="task-title">Создать новую семью</div>
-              <div className="task-sub">Код для родителей и подростков</div>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="task-row"
-            style={{ borderRadius: 12, padding: 16 }}
-            disabled={loading}
-            onClick={() => setStep("join-code")}
-          >
-            <span className="task-icon">🔗</span>
-            <span>
-              <div className="task-title">У меня есть код</div>
-              <div className="task-sub">Присоединиться к семье</div>
-            </span>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          className="text-link"
-          onClick={() => {
-            setStep("pick-role");
-            setError(null);
-          }}
-        >
-          Назад
-        </button>
-        {loading && <p className="hint-footer">Сохраняем…</p>}
         {error && <div className="error-banner">{error}</div>}
       </div>
     );
@@ -141,40 +168,54 @@ export function OnboardingScreen({ preview, onDone }: Props) {
 
   return (
     <div className="app-shell">
-      <h1 className="screen-title">Код семьи</h1>
+      <h1 className="screen-title">Новая семья</h1>
       <p className="screen-sub">
-        {userType
-          ? "Код из ссылки уже подставлен — проверь и войди."
-          : "Попроси скопировать код в разделе «Семья» у того, кто уже внутри."}
+        Создай семью и пригласи близких ссылкой из раздела «Семья».
       </p>
 
       <div className="card">
-        <input
-          className="textarea"
-          style={{ minHeight: 48, textTransform: "uppercase", letterSpacing: "0.12em" }}
-          value={inviteCode}
-          onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-          placeholder="Например AB12CD"
-          autoComplete="off"
+        <MainActionBlock
+          loading={loading}
+          onCreate={() => void createFamily(userType)}
         />
-        {error && <div className="error-banner">{error}</div>}
-        <MainAction
-          text="Войти в семью"
-          enabled={!loading && inviteCode.trim().length >= 4}
-          onClick={() => void submit(userType, "join", inviteCode)}
-        />
-        <button
-          type="button"
-          className="text-link"
-          onClick={() => {
-            setStep("pick-mode");
-            setError(null);
-          }}
-        >
-          Назад
-        </button>
       </div>
+
+      <button
+        type="button"
+        className="text-link"
+        onClick={() => {
+          setStep("pick-role");
+          setError(null);
+        }}
+      >
+        Назад
+      </button>
+      {error && <div className="error-banner">{error}</div>}
     </div>
+  );
+}
+
+function MainActionBlock({
+  loading,
+  onCreate,
+}: {
+  loading: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="task-row"
+      style={{ borderRadius: 12, padding: 16, width: "100%" }}
+      disabled={loading}
+      onClick={onCreate}
+    >
+      <span className="task-icon">✨</span>
+      <span>
+        <div className="task-title">{loading ? "Создаём…" : "Создать семью"}</div>
+        <div className="task-sub">Потом отправишь ссылки тем, кого позовёшь</div>
+      </span>
+    </button>
   );
 }
 

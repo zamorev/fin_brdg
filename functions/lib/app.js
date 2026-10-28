@@ -24,7 +24,7 @@ function createApp() {
     });
     app.get("/api/me", telegram_1.authMiddleware, async (req, res) => {
         try {
-            const session = await (0, store_1.buildMe)(req.telegramUser);
+            const session = await (0, store_1.buildMe)(req.telegramUser, req.botToken);
             res.json(session);
         }
         catch (e) {
@@ -40,8 +40,32 @@ function createApp() {
                 res.status(400).json({ error: "Выберите: teen или parent" });
                 return;
             }
-            const session = await (0, store_1.completeOnboarding)(req.telegramUser, userType, req.body.mode === "join" ? "join" : "create", req.body.inviteCode);
+            const session = await (0, store_1.completeOnboarding)(req.telegramUser, userType, req.body.mode === "join" ? "join" : "create", req.body.inviteCode, req.botToken);
             res.json(session);
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    app.post("/api/onboarding/join-invite", telegram_1.authMiddleware, async (req, res) => {
+        try {
+            const code = String(req.body.code ?? "");
+            const session = await (0, store_1.joinByInviteCode)(req.telegramUser, code, req.botToken);
+            res.json(session);
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    app.get("/api/invite-preview", telegram_1.authMiddleware, async (req, res) => {
+        try {
+            const code = String(req.query.code ?? "");
+            const preview = await (0, store_1.previewInviteCode)(code);
+            if (!preview) {
+                res.status(404).json({ error: "Код не найден или устарел" });
+                return;
+            }
+            res.json(preview);
         }
         catch (e) {
             res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
@@ -49,8 +73,21 @@ function createApp() {
     });
     app.get("/api/family", telegram_1.authMiddleware, async (req, res) => {
         try {
-            const view = await (0, store_1.getFamilyView)(req.telegramUser);
+            const view = await (0, store_1.getFamilyView)(req.telegramUser, req.botToken);
             res.json(view);
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    app.get("/api/avatar/:telegramId", telegram_1.authMiddleware, async (req, res) => {
+        try {
+            const targetId = Number(req.params.telegramId);
+            if (!Number.isFinite(targetId)) {
+                res.status(400).json({ error: "Некорректный id" });
+                return;
+            }
+            await (0, store_1.streamMemberAvatar)(req.telegramUser, targetId, req.botToken ?? "", res);
         }
         catch (e) {
             res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });

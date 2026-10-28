@@ -15,6 +15,14 @@
 | **G. Тесты** | `tests/**` | T10+ (по зонам) |
 | **H. Harness** | `tasks/**`, `harness/**`, `AGENTS.md` | любой — по договорённости |
 | **I. Продукт** | `product/**` | только осознанные правки концепции |
+| **J. v2 TWA (UI)** | `v2/web/**` | T11+, экраны Mini App, TWA |
+| **K. v2 API / Hosting config** | `functions/**`, `firebase.json`, `firestore.rules`, `scripts/deploy-*.sh` | T11+, onboarding, family, deploy |
+
+## v2 vs v1 (не дублировать)
+
+- **Прод Telegram Mini App** — только **`v2/web`** → `v2/web/dist`. Каталог **`web/`** не деплоить и не расширять для MVP.
+- Логика v2 — **`functions/`** + Firestore; Streamlit **`app/`** + SQLite **`src/db`** — другой продуктовый контур (v1).
+Перед правками invite/онбординга/аватарок читать [docs/V2.md](../docs/V2.md), [T11](../tasks/done/T11-v2-family-invites-twa.md), [T12](../tasks/done/T12-v2-onboarding-users-avatars.md).
 
 ## Правила
 

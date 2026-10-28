@@ -41,10 +41,13 @@ export function App() {
     setRoute({ name: "family" });
   }, []);
 
-  const backFromFamily = useCallback(() => {
-    if (Date.now() - familyEnteredAt.current < 800) return;
-    goHome();
-  }, [goHome]);
+  const backFromFamily = useCallback(
+    (opts?: { immediate?: boolean }) => {
+      if (!opts?.immediate && Date.now() - familyEnteredAt.current < 800) return;
+      goHome();
+    },
+    [goHome],
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -83,7 +86,7 @@ export function App() {
 
   if (user.userType === "parent") {
     if (route.name === "family") {
-      return <FamilyScreen user={user} onBack={backFromFamily} />;
+      return <FamilyScreen user={user} onBack={backFromFamily} onDone={goHome} />;
     }
     if (route.name === "parent-request") {
       return (
@@ -130,7 +133,7 @@ export function App() {
               <div className="task-title">Семья</div>
               <div className="task-sub">
                 {user.family.memberCounts.total}{" "}
-                {pluralMembers(user.family.memberCounts.total)} · код приглашения
+                {pluralMembers(user.family.memberCounts.total)} · пригласить
               </div>
             </span>
           </button>
@@ -141,7 +144,7 @@ export function App() {
   }
 
   if (route.name === "family") {
-    return <FamilyScreen user={user} onBack={backFromFamily} />;
+    return <FamilyScreen user={user} onBack={backFromFamily} onDone={goHome} />;
   }
 
   switch (route.name) {

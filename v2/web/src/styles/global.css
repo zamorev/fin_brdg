@@ -304,6 +304,23 @@ textarea {
   place-items: center;
   background: rgb(245 196 81 / 0.12);
   font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.member-avatar--fallback {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(245 196 81 / 0.12);
 }
 
 .task-title {

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchFamilyView } from "../api/client";
 import type { SessionUser, UserType } from "../domain/types";
+import { MemberAvatar } from "../components/MemberAvatar";
+import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
 import { useTwa } from "../twa/TwaProvider";
 import type { InviteTarget } from "../telegram/bot";
@@ -8,44 +10,44 @@ import { APP_BUILD_ID } from "../buildInfo";
 
 type Props = {
   user: SessionUser;
+  /** Telegram «Назад» — с короткой задержкой от случайного тапа по списку. */
   onBack: () => void;
+  /** Явный выход («Готово» / MainButton). */
+  onDone: () => void;
 };
 
-export function FamilyScreen({ user, onBack }: Props) {
-  const { tg, hideMainButton, shareFamilyInvite, haptic } = useTwa();
+export function FamilyScreen({ user, onBack, onDone }: Props) {
+  const { shareFamilyInvite, haptic } = useTwa();
   const [members, setMembers] = useState(user.members);
   const [counts, setCounts] = useState(user.family.memberCounts);
-  const [inviteCode, setInviteCode] = useState(user.family.inviteCode);
+  const inviteTokens = useRef({
+    parent: user.family.inviteCodeParent ?? user.family.inviteCode,
+    teen: user.family.inviteCodeTeen ?? user.family.inviteCode,
+  });
   const isParent = user.userType === "parent";
 
   useBackAction(onBack, 650);
 
   useEffect(() => {
-    hideMainButton();
-  }, [hideMainButton]);
-
-  useEffect(() => {
     void fetchFamilyView().then((view) => {
       setMembers(view.members);
       setCounts(view.memberCounts);
-      setInviteCode(view.inviteCode);
+      inviteTokens.current = {
+        parent: view.inviteCodeParent ?? view.inviteCode,
+        teen: view.inviteCodeTeen ?? view.inviteCode,
+      };
     });
   }, []);
+
+  const sendInvite = (target: InviteTarget) => {
+    const token = target === "parent" ? inviteTokens.current.parent : inviteTokens.current.teen;
+    shareFamilyInvite(target, token);
+    haptic("light");
+  };
 
   const parents = members.filter((m) => m.userType === "parent");
   const teens = members.filter((m) => m.userType === "teen");
   const needsSecondParent = isParent && counts.parents < 2;
-
-  const copyCode = () => {
-    void navigator.clipboard?.writeText(inviteCode);
-    tg?.HapticFeedback?.notificationOccurred("success");
-    haptic("success");
-  };
-
-  const sendInvite = (target: InviteTarget) => {
-    shareFamilyInvite(target, inviteCode);
-    haptic("light");
-  };
 
   return (
     <div className="app-shell">
@@ -61,8 +63,8 @@ export function FamilyScreen({ user, onBack }: Props) {
         {counts.teens}{" "}
         {plural(counts.teens, "подросток", "подростка", "подростков")}
         {isParent
-          ? ". Пригласи кого не хватает — ссылкой выше."
-          : ". Не хватает кого-то — ссылкой выше."}
+          ? ". Пригласи ссылкой — кнопки ниже."
+          : ". Позови ссылкой — кнопки ниже."}
       </p>
 
       <h2 style={{ fontSize: "1rem", margin: "0 0 8px" }}>Кого пригласить</h2>
@@ -104,33 +106,13 @@ export function FamilyScreen({ user, onBack }: Props) {
         )}
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
-        <div style={{ color: "var(--fb-hint)", fontSize: "0.8125rem" }}>
-          Код семьи (если удобнее вручную)
-        </div>
-        <div className="row-between" style={{ marginTop: 8 }}>
-          <span
-            style={{
-              fontSize: "1.375rem",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-            }}
-          >
-            {inviteCode}
-          </span>
-          <button type="button" className="inline-action" onClick={copyCode}>
-            Скопировать
-          </button>
-        </div>
-      </div>
-
       <h2 style={{ fontSize: "1rem", margin: "16px 0 8px" }}>Родители</h2>
       <div className="card task-list">
         {parents.length === 0 ? (
           <EmptyMembers hint={emptyParentsHint(user.userType)} />
         ) : (
           parents.map((m) => (
-            <MemberRow key={`${m.displayName}-${m.userType}`} member={m} />
+            <MemberRow key={m.telegramId} member={m} />
           ))
         )}
       </div>
@@ -141,7 +123,7 @@ export function FamilyScreen({ user, onBack }: Props) {
           <EmptyMembers hint={emptyTeensHint(user.userType)} />
         ) : (
           teens.map((m) => (
-            <MemberRow key={`${m.displayName}-${m.userType}`} member={m} />
+            <MemberRow key={m.telegramId} member={m} />
           ))
         )}
       </div>
@@ -152,9 +134,7 @@ export function FamilyScreen({ user, onBack }: Props) {
       </p>
       <p className="hint-footer build-stamp">id {APP_BUILD_ID}</p>
 
-      <button type="button" className="btn-primary-fallback" onClick={onBack}>
-        Готово
-      </button>
+      <MainAction text="Готово" onClick={onDone} />
     </div>
   );
 }
@@ -209,9 +189,7 @@ function emptyTeensHint(viewer: UserType): string {
 function MemberRow({ member }: { member: SessionUser["members"][0] }) {
   return (
     <div className="task-row" style={{ cursor: "default" }}>
-      <span className="task-icon">
-        {member.userType === "parent" ? "👤" : "🎒"}
-      </span>
+      <MemberAvatar member={member} />
       <span>
         <div className="task-title">
           {member.displayName}

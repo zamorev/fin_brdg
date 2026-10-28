@@ -6,6 +6,8 @@ export type TelegramUser = {
   first_name?: string;
   last_name?: string;
   username?: string;
+  /** Публичный URL из initData Mini App (если Telegram отдал). */
+  photo_url?: string;
 };
 
 export function parseInitData(initData: string): TelegramUser | null {

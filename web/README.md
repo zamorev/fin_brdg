@@ -1,9 +1,7 @@
-# Telegram Mini App (static shell)
+# Telegram Mini App (legacy static shell)
 
-Статика для **Firebase Hosting** (`https://fin-brdg.web.app`).
+> **Не используется на проде.** Firebase Hosting отдаёт **`v2/web/dist`** (см. `firebase.json`, [docs/V2.md](../docs/V2.md)).
 
-- `index.html` + Telegram Web App SDK
-- Пока `backendUrl` пуст — заглушка в духе бота
-- Когда Streamlit будет на HTTPS — задайте `backendUrl` в `js/config.js` (full-page iframe)
+Эта папка — ранняя статическая заглушка (iframe под Streamlit). Новый код Mini App — только в **`v2/web/`**.
 
-Сборка не нужна: деплой папки `web/` как есть.
+Если нужно что-то для @fin_brdg_bot — читай [tasks/done/T11-v2-family-invites-twa.md](../tasks/done/T11-v2-family-invites-twa.md).

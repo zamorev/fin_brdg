@@ -10,6 +10,9 @@ import {
   type Allocation,
   type UserType,
   getFamilyView,
+  previewInviteCode,
+  joinByInviteCode,
+  streamMemberAvatar,
 } from "./store";
 
 let resolveBotToken: () => string = () => process.env.TELEGRAM_BOT_TOKEN ?? "";
@@ -32,7 +35,7 @@ export function createApp() {
 
   app.get("/api/me", authMiddleware, async (req, res) => {
     try {
-      const session = await buildMe(req.telegramUser!);
+      const session = await buildMe(req.telegramUser!, req.botToken);
       res.json(session);
     } catch (e) {
       res.status(500).json({
@@ -53,6 +56,7 @@ export function createApp() {
         userType,
         req.body.mode === "join" ? "join" : "create",
         req.body.inviteCode,
+        req.botToken,
       );
       res.json(session);
     } catch (e) {
@@ -60,10 +64,52 @@ export function createApp() {
     }
   });
 
+  app.post("/api/onboarding/join-invite", authMiddleware, async (req, res) => {
+    try {
+      const code = String(req.body.code ?? "");
+      const session = await joinByInviteCode(req.telegramUser!, code, req.botToken);
+      res.json(session);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.get("/api/invite-preview", authMiddleware, async (req, res) => {
+    try {
+      const code = String(req.query.code ?? "");
+      const preview = await previewInviteCode(code);
+      if (!preview) {
+        res.status(404).json({ error: "Код не найден или устарел" });
+        return;
+      }
+      res.json(preview);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
   app.get("/api/family", authMiddleware, async (req, res) => {
     try {
-      const view = await getFamilyView(req.telegramUser!);
+      const view = await getFamilyView(req.telegramUser!, req.botToken);
       res.json(view);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.get("/api/avatar/:telegramId", authMiddleware, async (req, res) => {
+    try {
+      const targetId = Number(req.params.telegramId);
+      if (!Number.isFinite(targetId)) {
+        res.status(400).json({ error: "Некорректный id" });
+        return;
+      }
+      await streamMemberAvatar(
+        req.telegramUser!,
+        targetId,
+        req.botToken ?? "",
+        res,
+      );
     } catch (e) {
       res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
     }

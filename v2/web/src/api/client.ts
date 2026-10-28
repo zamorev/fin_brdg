@@ -11,6 +11,24 @@ function authHeaders(): HeadersInit {
   };
 }
 
+function authHeadersRaw(): HeadersInit {
+  const tg = window.Telegram?.WebApp;
+  const initData = tg?.initData ?? "";
+  return initData ? { Authorization: `tma ${initData}` } : {};
+}
+
+/** Аватар участника семьи (blob URL — revoke после unmount). */
+export async function fetchMemberAvatarUrl(telegramId: number): Promise<string> {
+  const res = await fetch(`${API_BASE}/avatar/${telegramId}`, {
+    headers: authHeadersRaw(),
+  });
+  if (!res.ok) {
+    throw new Error("avatar");
+  }
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -46,9 +64,24 @@ export function fetchFamilyView() {
   return request<{
     familyId: string;
     inviteCode: string;
+    inviteCodeParent: string;
+    inviteCodeTeen: string;
     memberCounts: { teens: number; parents: number; total: number };
     members: import("../domain/types").FamilyMember[];
   }>("/family");
+}
+
+export function joinByInvite(code: string) {
+  return request<SessionUser & { needsOnboarding?: false }>("/onboarding/join-invite", {
+    method: "POST",
+    body: JSON.stringify({ code: code.trim().toUpperCase() }),
+  });
+}
+
+export function fetchInvitePreview(code: string) {
+  return request<{ userType: import("../domain/types").UserType }>(
+    `/invite-preview?code=${encodeURIComponent(code.trim().toUpperCase())}`,
+  );
 }
 
 export function checkWeekBudget(allocation: Record<string, number>) {

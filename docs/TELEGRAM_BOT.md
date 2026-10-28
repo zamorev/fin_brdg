@@ -25,7 +25,8 @@
 | Edit Description | [ниже](#description) |
 | Edit Commands | [ниже](#команды) |
 | Menu Button | **Поехали** |
-| Web App URL | `https://fin-brdg.web.app` (после `./scripts/deploy-firebase-hosting.sh`) |
+| Web App URL | `https://fin-brdg.web.app` |
+| Direct Link / invite | `?startapp=t_<token>` или `p_<token>` на `@fin_brdg_bot` — см. [V2.md](V2.md) |
 | Domain | `fin-brdg.web.app` |
 
 Аватар — узнаваемый в круге, без мелкого текста.

@@ -10,24 +10,36 @@ import {
 } from "./domain";
 
 export type { Allocation };
+
 import type { TelegramUser } from "./telegram";
 import { displayName } from "./telegram";
+import { schedulePhotoRefresh, serveFamilyMemberAvatar, syncUserProfilePhoto } from "./profilePhoto";
 
 const db = () => getFirestore();
 
-/** Один Telegram-аккаунт — один пользователь с фиксированным типом. */
-export type UserType = "teen" | "parent";
+/** После онбординга — teen | parent; до выбора роли — anonymous. */
+export type UserType = "teen" | "parent" | "anonymous";
+
+export type RoleUserType = "teen" | "parent";
 
 export type UserDoc = {
   userType: UserType;
-  familyId: string;
+  /** Нет у anonymous до завершения онбординга. */
+  familyId?: string;
   displayName: string;
   createdAt: Timestamp;
+  /** Публичный URL (t.me / CDN), без токена бота. */
+  photoUrl?: string;
+  /** Путь файла Bot API — отдаём только через /api/avatar. */
+  photoFilePath?: string;
 };
 
 /** Общие правила и прогресс квестов MVP (на всю семью; позже — per-teen). */
 export type FamilyDoc = {
+  /** @deprecated общий код; для старых семей */
   inviteCode: string;
+  inviteCodeParent?: string;
+  inviteCodeTeen?: string;
   allocation: Allocation;
   questWeekBudgetCompleted: boolean;
   questUnplannedCompleted: boolean;
@@ -49,9 +61,12 @@ export type RequestDoc = {
 };
 
 export type FamilyMemberView = {
+  telegramId: number;
   displayName: string;
-  userType: UserType;
+  userType: RoleUserType;
   isYou: boolean;
+  photoUrl?: string;
+  hasAvatar: boolean;
 };
 
 export type OnboardingMode = "create" | "join";
@@ -60,9 +75,16 @@ function newInviteCode(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function newFamilyDoc(inviteCode: string): FamilyDoc {
+function newFamilyDoc(): FamilyDoc {
+  const inviteCodeParent = newInviteCode();
+  let inviteCodeTeen = newInviteCode();
+  while (inviteCodeTeen === inviteCodeParent) {
+    inviteCodeTeen = newInviteCode();
+  }
   return {
-    inviteCode,
+    inviteCode: inviteCodeParent,
+    inviteCodeParent,
+    inviteCodeTeen,
     allocation: { ...DEFAULT_ALLOCATION },
     questWeekBudgetCompleted: false,
     questUnplannedCompleted: false,
@@ -94,16 +116,124 @@ export async function resolveUser(telegramId: number): Promise<UserDoc | null> {
   return (await getUser(telegramId)) ?? (await getLegacyMember(telegramId));
 }
 
+export function isOnboardedUser(profile: UserDoc): profile is UserDoc & {
+  userType: RoleUserType;
+  familyId: string;
+} {
+  return profile.userType !== "anonymous" && Boolean(profile.familyId);
+}
+
+/** Первый заход (в т.ч. по invite): создаём users/{telegramId} с userType anonymous. */
+export async function ensureUserRecord(tg: TelegramUser, botToken?: string): Promise<UserDoc> {
+  const id = String(tg.id);
+  const ref = db().collection("users").doc(id);
+  const snap = await ref.get();
+  const name = displayName(tg);
+
+  if (!snap.exists) {
+    const doc: UserDoc = {
+      userType: "anonymous",
+      displayName: name,
+      createdAt: Timestamp.now(),
+    };
+    await ref.set(doc);
+    if (botToken) {
+      void syncUserProfilePhoto(tg.id, tg, botToken);
+    }
+    return doc;
+  }
+
+  const data = snap.data() as UserDoc;
+  if (data.displayName !== name) {
+    await ref.set({ displayName: name }, { merge: true });
+    return { ...data, displayName: name };
+  }
+  if (botToken) {
+    void syncUserProfilePhoto(tg.id, tg, botToken);
+  }
+  return data;
+}
+
+async function ensureFamilyInviteCodes(
+  familyId: string,
+  data: FamilyDoc,
+): Promise<FamilyDoc> {
+  let inviteCodeParent = data.inviteCodeParent ?? data.inviteCode ?? "";
+  let inviteCodeTeen = data.inviteCodeTeen ?? "";
+  const updates: Record<string, string> = {};
+
+  if (!inviteCodeParent) {
+    inviteCodeParent = newInviteCode();
+    updates.inviteCodeParent = inviteCodeParent;
+    updates.inviteCode = inviteCodeParent;
+  }
+  if (!inviteCodeTeen) {
+    inviteCodeTeen = newInviteCode();
+    while (inviteCodeTeen === inviteCodeParent) {
+      inviteCodeTeen = newInviteCode();
+    }
+    updates.inviteCodeTeen = inviteCodeTeen;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await db().collection("families").doc(familyId).update(updates);
+  }
+
+  return {
+    ...data,
+    inviteCode: data.inviteCode ?? inviteCodeParent,
+    inviteCodeParent,
+    inviteCodeTeen,
+  };
+}
+
+type InviteResolve = {
+  familyId: string;
+  intendedRole: RoleUserType | null;
+};
+
+async function resolveFamilyByInviteCode(codeRaw: string): Promise<InviteResolve | null> {
+  const code = codeRaw.trim().toUpperCase();
+  if (!code) return null;
+
+  const tryField = async (
+    field: "inviteCodeParent" | "inviteCodeTeen" | "inviteCode",
+    intendedRole: RoleUserType | null,
+  ) => {
+    const snap = await db()
+      .collection("families")
+      .where(field, "==", code)
+      .limit(1)
+      .get();
+    if (snap.empty) return null;
+    return { familyId: snap.docs[0].id, intendedRole };
+  };
+
+  return (
+    (await tryField("inviteCodeParent", "parent")) ??
+    (await tryField("inviteCodeTeen", "teen")) ??
+    (await tryField("inviteCode", null))
+  );
+}
+
+export async function previewInviteCode(
+  codeRaw: string,
+): Promise<{ userType: RoleUserType } | null> {
+  const resolved = await resolveFamilyByInviteCode(codeRaw);
+  if (!resolved?.intendedRole) return null;
+  return { userType: resolved.intendedRole };
+}
+
 export async function getFamily(familyId: string): Promise<FamilyDoc> {
   const doc = await db().collection("families").doc(familyId).get();
   if (!doc.exists) {
     throw new Error("Семья не найдена");
   }
   const data = doc.data() as FamilyDoc;
-  return {
+  return ensureFamilyInviteCodes(familyId, {
     ...data,
     inviteCode: data.inviteCode ?? "",
-  };
+  });
 }
 
 export async function listFamilyMembers(
@@ -111,14 +241,19 @@ export async function listFamilyMembers(
   selfTelegramId: number,
 ): Promise<FamilyMemberView[]> {
   const q = await db().collection("users").where("familyId", "==", familyId).get();
-  const members: FamilyMemberView[] = q.docs.map((doc) => {
+  const members: FamilyMemberView[] = [];
+  for (const doc of q.docs) {
     const data = doc.data() as UserDoc;
-    return {
+    if (!isOnboardedUser(data)) continue;
+    members.push({
+      telegramId: Number(doc.id),
       displayName: data.displayName,
       userType: data.userType,
       isYou: doc.id === String(selfTelegramId),
-    };
-  });
+      photoUrl: data.photoUrl,
+      hasAvatar: Boolean(data.photoUrl || data.photoFilePath),
+    });
+  }
 
   members.sort((a, b) => {
     if (a.userType !== b.userType) {
@@ -144,7 +279,7 @@ export async function getActiveRequest(familyId: string) {
 
 function buildSessionPayload(
   tg: TelegramUser,
-  profile: UserDoc,
+  profile: UserDoc & { familyId: string; userType: RoleUserType },
   family: FamilyDoc,
   members: FamilyMemberView[],
   active: ({ id: string } & RequestDoc) | null,
@@ -158,7 +293,9 @@ function buildSessionPayload(
     displayName: profile.displayName || displayName(tg),
     family: {
       familyId: profile.familyId,
-      inviteCode: family.inviteCode,
+      inviteCode: family.inviteCodeTeen ?? family.inviteCode,
+      inviteCodeParent: family.inviteCodeParent ?? family.inviteCode,
+      inviteCodeTeen: family.inviteCodeTeen ?? family.inviteCode,
       memberCounts: { teens, parents, total: members.length },
       allocation: family.allocation,
       questWeekBudgetCompleted: family.questWeekBudgetCompleted,
@@ -183,7 +320,10 @@ function buildSessionPayload(
   };
 }
 
-async function sessionForUser(tg: TelegramUser, profile: UserDoc) {
+async function sessionForUser(
+  tg: TelegramUser,
+  profile: UserDoc & { familyId: string; userType: RoleUserType },
+) {
   const family = await getFamily(profile.familyId);
   const active = await getActiveRequest(profile.familyId);
   const members = await listFamilyMembers(profile.familyId, tg.id);
@@ -194,14 +334,17 @@ export type MeResponse =
   | { needsOnboarding: true; telegramId: number; displayName: string }
   | ({ needsOnboarding: false } & ReturnType<typeof buildSessionPayload>);
 
-export async function buildMe(user: TelegramUser): Promise<MeResponse> {
-  const profile = await resolveUser(user.id);
-  if (!profile) {
+export async function buildMe(user: TelegramUser, botToken?: string): Promise<MeResponse> {
+  const profile = await ensureUserRecord(user, botToken);
+  if (!isOnboardedUser(profile)) {
     return {
       needsOnboarding: true,
       telegramId: user.id,
-      displayName: displayName(user),
+      displayName: profile.displayName || displayName(user),
     };
+  }
+  if (botToken) {
+    schedulePhotoRefresh(profile.familyId, botToken, user);
   }
   const session = await sessionForUser(user, profile);
   return { needsOnboarding: false, ...session };
@@ -209,12 +352,14 @@ export async function buildMe(user: TelegramUser): Promise<MeResponse> {
 
 export async function completeOnboarding(
   tg: TelegramUser,
-  userType: UserType,
+  userType: RoleUserType,
   mode: OnboardingMode,
   inviteCodeRaw?: string,
+  botToken?: string,
 ) {
+  await ensureUserRecord(tg, botToken);
   const existing = await resolveUser(tg.id);
-  if (existing) {
+  if (existing && isOnboardedUser(existing)) {
     throw new Error("Ты уже в Fin Bridge — роль менять нельзя");
   }
 
@@ -224,35 +369,40 @@ export async function completeOnboarding(
 
   if (mode === "create") {
     familyId = db().collection("families").doc().id;
-    const inviteCode = newInviteCode();
-    await db().collection("families").doc(familyId).set(newFamilyDoc(inviteCode));
+    await db().collection("families").doc(familyId).set(newFamilyDoc());
   } else {
     const inviteCode = (inviteCodeRaw ?? "").trim().toUpperCase();
     if (!inviteCode) {
       throw new Error("Введи код семьи");
     }
-    const snap = await db()
-      .collection("families")
-      .where("inviteCode", "==", inviteCode)
-      .limit(1)
-      .get();
-    if (snap.empty) {
+    const resolved = await resolveFamilyByInviteCode(inviteCode);
+    if (!resolved) {
       throw new Error("Код не найден — проверьте у того, кто уже в семье");
     }
-    familyId = snap.docs[0].id;
+    if (resolved.intendedRole && resolved.intendedRole !== userType) {
+      throw new Error(
+        resolved.intendedRole === "parent"
+          ? "Этот код — для родителя. Попроси ссылку, которую отправили родителю."
+          : "Этот код — для подростка. Попроси ссылку, которую отправили ребёнку.",
+      );
+    }
+    familyId = resolved.familyId;
   }
 
   await db()
     .collection("users")
     .doc(id)
-    .set({
-      userType,
-      familyId,
-      displayName: name,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    .set(
+      {
+        userType,
+        familyId,
+        displayName: name,
+        ...(existing?.createdAt ? {} : { createdAt: FieldValue.serverTimestamp() }),
+      },
+      { merge: true },
+    );
 
-  const me = await buildMe(tg);
+  const me = await buildMe(tg, botToken);
   if (me.needsOnboarding) {
     throw new Error("Не удалось завершить регистрацию");
   }
@@ -260,9 +410,42 @@ export async function completeOnboarding(
   return session;
 }
 
-async function requireUser(tg: TelegramUser, type?: UserType): Promise<UserDoc> {
+/** Вступление по invite-ссылке: роль определяется кодом на сервере. */
+export async function joinByInviteCode(
+  tg: TelegramUser,
+  inviteCodeRaw: string,
+  botToken?: string,
+) {
+  await ensureUserRecord(tg, botToken);
+  const trimmed = inviteCodeRaw.trim();
+  let code = trimmed.toUpperCase();
+  let roleHint: RoleUserType | null = null;
+  const prefixed = trimmed.match(/^([pt])_(.+)$/i);
+  if (prefixed) {
+    roleHint = prefixed[1].toLowerCase() === "p" ? "parent" : "teen";
+    code = prefixed[2].trim().toUpperCase();
+  }
+  if (!code) {
+    throw new Error("Ссылка без кода — попроси отправить заново");
+  }
+  const resolved = await resolveFamilyByInviteCode(code);
+  if (!resolved) {
+    throw new Error(
+      "Ссылка устарела — попроси новую кнопку «Отправить ссылку» в разделе «Семья»",
+    );
+  }
+  const role: RoleUserType | null = resolved.intendedRole ?? roleHint;
+  if (!role) {
+    throw new Error(
+      "Не удалось определить роль по ссылке — попроси отправить ссылку ещё раз из раздела «Семья»",
+    );
+  }
+  return completeOnboarding(tg, role, "join", code, botToken);
+}
+
+async function requireUser(tg: TelegramUser, type?: RoleUserType): Promise<UserDoc & { familyId: string; userType: RoleUserType }> {
   const profile = await resolveUser(tg.id);
-  if (!profile) {
+  if (!profile || !isOnboardedUser(profile)) {
     throw new Error("Сначала выберите, кто вы — подросток или родитель");
   }
   if (type && profile.userType !== type) {
@@ -379,13 +562,18 @@ export async function decideRequest(
   return sessionForUser(user, profile);
 }
 
-export async function getFamilyView(user: TelegramUser) {
+export async function getFamilyView(user: TelegramUser, botToken?: string) {
   const profile = await requireUser(user);
+  if (botToken) {
+    schedulePhotoRefresh(profile.familyId, botToken, user);
+  }
   const family = await getFamily(profile.familyId);
   const members = await listFamilyMembers(profile.familyId, user.id);
   return {
     familyId: profile.familyId,
-    inviteCode: family.inviteCode,
+    inviteCode: family.inviteCodeTeen ?? family.inviteCode,
+    inviteCodeParent: family.inviteCodeParent ?? family.inviteCode,
+    inviteCodeTeen: family.inviteCodeTeen ?? family.inviteCode,
     memberCounts: {
       teens: members.filter((m) => m.userType === "teen").length,
       parents: members.filter((m) => m.userType === "parent").length,
@@ -393,4 +581,14 @@ export async function getFamilyView(user: TelegramUser) {
     },
     members,
   };
+}
+
+export async function streamMemberAvatar(
+  viewer: TelegramUser,
+  targetTelegramId: number,
+  botToken: string,
+  res: import("express").Response,
+): Promise<void> {
+  const profile = await requireUser(viewer);
+  await serveFamilyMemberAvatar(profile.familyId, targetTelegramId, botToken, res);
 }

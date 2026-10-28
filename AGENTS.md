@@ -6,7 +6,7 @@
 
 ## Проект в одном абзаце
 
-Веб-прототип (3 дня): подросток — квесты и бюджет; родитель — правила и решения по запросам. Python, Streamlit, SQLite. Спека: [docs/PRODUCT.md](docs/PRODUCT.md).
+Веб-прототип: **v1** — Streamlit + SQLite (`app/`, `src/`); **prod Telegram** — v2 TWA (`v2/web` + `functions/`). Спека: [docs/PRODUCT.md](docs/PRODUCT.md), v2: [docs/V2.md](docs/V2.md).
 
 ## Setup
 
@@ -31,15 +31,17 @@ streamlit run app/main.py
 |--------|----------|
 | Что строим? | [docs/product-specs/index.md](docs/product-specs/index.md) |
 | Куда класть код? | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Telegram Mini App (prod) | [docs/V2.md](docs/V2.md) — **`v2/web`**, не `web/` |
 | Можно ли так? | [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) |
 | Как не конфликтовать? | [harness/OWNERSHIP.md](harness/OWNERSHIP.md) |
 | Схема БД | [docs/generated/db-schema.md](docs/generated/db-schema.md) (после T08) |
 
 ## Инварианты (кратко)
 
-- Логика в `src/`, UI в `app/`; domain/quests/db **без** Streamlit.
-- SQL только в `src/db/`.
-- Константы бюджета — `src/domain/`.
+- **v1:** логика в `src/`, UI в `app/`; domain/quests/db **без** Streamlit.
+- **v2 prod:** UI `v2/web`, API `functions/` — [docs/V2.md](docs/V2.md); не править `web/` для Mini App.
+- SQL v1 — `src/db/`; Firestore v2 — `functions/`.
+- Константы бюджета v1 — `src/domain/`.
 - Не коммитить `.env`, `data/*.db`, `.venv`.
 - MVP-запреты: банк, реальные карты, trust-score, авто-лимиты — см. core-beliefs.
 
