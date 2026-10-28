@@ -1,7 +1,7 @@
 ---
 id: T14
 title: v2 — локальный запуск на эмуляторах Firebase
-status: in-progress
+status: done
 owns:
   - docs/LOCAL_DEV.md
   - docs/index.md
