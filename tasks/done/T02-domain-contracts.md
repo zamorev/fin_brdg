@@ -1,7 +1,7 @@
 ---
 id: T02
 title: Доменные константы и контракты бюджета
-status: in-progress
+status: done
 owns: [E, G]  # G: только tests/test_domain.py
 depends-on: []
 claimed-by: sw3artog0d
