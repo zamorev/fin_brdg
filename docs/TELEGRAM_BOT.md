@@ -24,8 +24,9 @@
 | Edit About | текст выше |
 | Edit Description | [ниже](#description) |
 | Edit Commands | [ниже](#команды) |
-| Menu Button | **Поехали** (или **Открыть**, когда будет URL) |
-| Domain | когда появится HTTPS |
+| Menu Button | **Поехали** |
+| Web App URL | `https://fin-brdg.web.app` (после `./scripts/deploy-firebase-hosting.sh`) |
+| Domain | `fin-brdg.web.app` |
 
 Аватар — узнаваемый в круге, без мелкого текста.
 
@@ -122,6 +123,7 @@ invite - Подключить второго в семью
 |------|--------|
 | Menu Button | **Поехали** |
 | Web App title | **Fin Bridge** |
+| Web App URL | `https://fin-brdg.web.app` |
 
 ---
 

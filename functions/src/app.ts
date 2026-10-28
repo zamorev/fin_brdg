@@ -1,0 +1,120 @@
+import express from "express";
+import { authMiddleware } from "./telegram";
+import {
+  buildMe,
+  completeOnboarding,
+  createRequest,
+  decideRequest,
+  saveUnplanned,
+  saveWeekBudget,
+  type Allocation,
+  type UserType,
+  getFamilyView,
+} from "./store";
+
+let resolveBotToken: () => string = () => process.env.TELEGRAM_BOT_TOKEN ?? "";
+
+export function setBotTokenProvider(provider: () => string): void {
+  resolveBotToken = provider;
+}
+
+export function createApp() {
+  const app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => {
+    req.botToken = resolveBotToken();
+    next();
+  });
+
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true });
+  });
+
+  app.get("/api/me", authMiddleware, async (req, res) => {
+    try {
+      const session = await buildMe(req.telegramUser!);
+      res.json(session);
+    } catch (e) {
+      res.status(500).json({
+        error: e instanceof Error ? e.message : "Ошибка",
+      });
+    }
+  });
+
+  app.post("/api/onboarding", authMiddleware, async (req, res) => {
+    try {
+      const userType = req.body.userType as UserType;
+      if (userType !== "teen" && userType !== "parent") {
+        res.status(400).json({ error: "Выберите: teen или parent" });
+        return;
+      }
+      const session = await completeOnboarding(
+        req.telegramUser!,
+        userType,
+        req.body.mode === "join" ? "join" : "create",
+        req.body.inviteCode,
+      );
+      res.json(session);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.get("/api/family", authMiddleware, async (req, res) => {
+    try {
+      const view = await getFamilyView(req.telegramUser!);
+      res.json(view);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/quests/week-budget", authMiddleware, async (req, res) => {
+    try {
+      const allocation = req.body.allocation as Allocation;
+      const result = await saveWeekBudget(req.telegramUser!, allocation);
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/quests/unplanned", authMiddleware, async (req, res) => {
+    try {
+      const choice = req.body.choice;
+      const user = await saveUnplanned(req.telegramUser!, choice);
+      res.json({ user });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/requests", authMiddleware, async (req, res) => {
+    try {
+      const user = await createRequest(
+        req.telegramUser!,
+        Number(req.body.proposedAmount),
+        String(req.body.explanation ?? ""),
+      );
+      res.json({ user });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/requests/:id/decide", authMiddleware, async (req, res) => {
+    try {
+      const user = await decideRequest(
+        req.telegramUser!,
+        String(req.params.id),
+        String(req.body.action),
+        String(req.body.comment ?? ""),
+      );
+      res.json({ user });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  return app;
+}

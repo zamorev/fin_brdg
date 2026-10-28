@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Fin Bridge</title>
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/js/config.js"></script>
+  </head>
+  <body>
+    <div id="shell" class="shell">
+      <header class="header">
+        <p class="eyebrow">Fin Bridge</p>
+        <h1 class="title">Поехали</h1>
+      </header>
+      <main id="content" class="content">
+        <p class="lead">
+          Квесты про бюджет и неожиданные траты. Семья — со своих телефонов.
+        </p>
+        <p id="status" class="status" hidden></p>
+      </main>
+      <footer class="footer">
+        <p class="hint">Учебные деньги · прототип хакатона</p>
+      </footer>
+    </div>
+    <iframe
+      id="backend-frame"
+      class="backend-frame"
+      title="Fin Bridge"
+      hidden
+    ></iframe>
+    <script src="/js/app.js"></script>
+  </body>
+</html>

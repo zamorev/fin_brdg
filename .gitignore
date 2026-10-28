@@ -11,5 +11,11 @@ data/*.db
 .DS_Store
 .streamlit/secrets.toml
 
+# Firebase / Node (Hosting deploy)
+.firebase/
+node_modules/
+web/js/config.local.js
+functions/.env
+
 # Локальный конфиг превью Claude Code
 .claude/launch.json

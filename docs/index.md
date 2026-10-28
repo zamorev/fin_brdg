@@ -9,6 +9,8 @@
 | [product-specs/index.md](product-specs/index.md) | Любая фича, копирайт, сценарии |
 | [PRODUCT.md](PRODUCT.md) | Полная спецификация MVP |
 | [TELEGRAM_BOT.md](TELEGRAM_BOT.md) | Тексты @fin_brdg_bot, BotFather, маркетинг |
+| [FIREBASE_HOSTING.md](FIREBASE_HOSTING.md) | Mini App на Hosting, деплой, URL для BotFather |
+| [V2.md](V2.md) | TWA v2 (React + Firestore + Functions) |
 
 ## Архитектура и качество
 

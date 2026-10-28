@@ -13,6 +13,13 @@ cp .env.example .env   # опционально: локальные секрет
 streamlit run app/main.py
 ```
 
+Telegram Mini App v2 (React TWA + Firebase): [`docs/V2.md`](docs/V2.md). Legacy static shell: [`docs/FIREBASE_HOSTING.md`](docs/FIREBASE_HOSTING.md).
+
+```bash
+chmod +x scripts/deploy-v2.sh
+./scripts/deploy-v2.sh
+```
+
 ## Команда и агенты
 
 Репозиторий настроен как **agent harness**:
