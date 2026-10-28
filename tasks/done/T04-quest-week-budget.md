@@ -1,7 +1,7 @@
 ---
 id: T04
 title: Квест 1 — Неделя на 1 500 ₽
-status: in-progress
+status: done
 owns: [B, D]
 depends-on: [T02, T03]
 claimed-by: sw3artog0d
