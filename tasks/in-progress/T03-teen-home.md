@@ -1,9 +1,12 @@
 ---
 id: T03
 title: Главная подростка
-status: backlog
+status: in-progress
 owns: [B]
 depends-on: [T01, T02]
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T03
+started: 2026-10-28
 ---
 
 # T03 — Главная страница подростка
