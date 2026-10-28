@@ -78,6 +78,14 @@ textarea {
   padding-bottom: calc(var(--fb-safe-bottom) + 88px);
 }
 
+.app-shell--inline-footer {
+  padding-bottom: calc(var(--fb-safe-bottom) + 16px);
+}
+
+.twa-ready .app-shell--inline-footer {
+  padding-bottom: calc(var(--fb-safe-bottom) + 16px);
+}
+
 .loading {
   display: flex;
   align-items: center;
@@ -110,7 +118,9 @@ textarea {
 .build-stamp {
   opacity: 0.5;
   font-size: 0.75rem;
-  margin-top: 24px;
+  margin-top: 12px;
+  margin-bottom: 0;
+  text-align: center;
 }
 
 .card {
@@ -241,6 +251,63 @@ textarea {
   font-weight: 600;
 }
 
+.btn-primary-scroll {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--fb-radius-md);
+  background: var(--fb-button);
+  color: var(--fb-button-text);
+  font-weight: 600;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.family-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.family-section-head:first-of-type {
+  margin-top: 0;
+}
+
+.family-section-head .family-section-title {
+  margin: 0;
+}
+
+.family-section-title {
+  font-size: 1rem;
+}
+
+.section-invite-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(59 130 246 / 0.22);
+  color: var(--fb-link);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.section-invite-link:active {
+  background: rgb(59 130 246 / 0.32);
+}
+
 .progress-ring-wrap {
   display: flex;
   flex-direction: column;
@@ -261,6 +328,19 @@ textarea {
 .task-list {
   display: flex;
   flex-direction: column;
+}
+
+.card.task-list:not(.task-list--tap) {
+  padding: 0;
+}
+
+.card.task-list:not(.task-list--tap) > .task-row {
+  padding: 14px 16px;
+}
+
+.card.task-list:not(.task-list--tap) > .empty-members-hint {
+  padding: 14px 16px;
+  margin: 0;
 }
 
 /** Вся карточка кликабельна, не только полоска контента внутри padding .card */

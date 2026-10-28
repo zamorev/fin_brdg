@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { fetchFamilyView } from "../api/client";
 import type { SessionUser, UserType } from "../domain/types";
 import { MemberAvatar } from "../components/MemberAvatar";
-import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
 import { useTwa } from "../twa/TwaProvider";
 import type { InviteTarget } from "../telegram/bot";
@@ -17,7 +16,7 @@ type Props = {
 };
 
 export function FamilyScreen({ user, onBack, onDone }: Props) {
-  const { shareFamilyInvite, haptic } = useTwa();
+  const { shareFamilyInvite, haptic, hideMainButton } = useTwa();
   const [members, setMembers] = useState(user.members);
   const [counts, setCounts] = useState(user.family.memberCounts);
   const inviteTokens = useRef({
@@ -27,6 +26,11 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
   const isParent = user.userType === "parent";
 
   useBackAction(onBack, 650);
+
+  useEffect(() => {
+    hideMainButton();
+    return () => hideMainButton();
+  }, [hideMainButton]);
 
   useEffect(() => {
     void fetchFamilyView().then((view) => {
@@ -47,10 +51,9 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
 
   const parents = members.filter((m) => m.userType === "parent");
   const teens = members.filter((m) => m.userType === "teen");
-  const needsSecondParent = isParent && counts.parents < 2;
 
   return (
-    <div className="app-shell">
+    <div className="app-shell app-shell--inline-footer">
       <h1 className="screen-title">
         <span className="screen-title__brand">Fin Bridge</span>
         <span className="screen-title__sep"> / </span>
@@ -63,50 +66,16 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
         {counts.teens}{" "}
         {plural(counts.teens, "подросток", "подростка", "подростков")}
         {isParent
-          ? ". Пригласи ссылкой — кнопки ниже."
-          : ". Позови ссылкой — кнопки ниже."}
+          ? ". Пригласи ссылкой — «Пригласить» у каждого списка."
+          : ". Позови ссылкой — «Пригласить» у каждого списка."}
       </p>
 
-      <h2 style={{ fontSize: "1rem", margin: "0 0 8px" }}>Кого пригласить</h2>
-      <div className="card task-list task-list--tap">
-        {needsSecondParent ? (
-          <InviteRow
-            icon="👤"
-            title="Второй родитель"
-            sub="Партнёр, мама или папа — со своего Telegram"
-            action="Отправить ссылку"
-            onAction={() => sendInvite("parent")}
-          />
-        ) : null}
-        {isParent ? (
-          <InviteRow
-            icon="🎒"
-            title="Ребёнок"
-            sub="Подросток — квесты и бюджет на своём телефоне"
-            action="Отправить ссылку"
-            onAction={() => sendInvite("teen")}
-          />
-        ) : (
-          <>
-            <InviteRow
-              icon="👤"
-              title="Родитель"
-              sub="Чтобы согласовывать правила и лимиты"
-              action="Отправить ссылку"
-              onAction={() => sendInvite("parent")}
-            />
-            <InviteRow
-              icon="🎒"
-              title="Брат или сестра"
-              sub="Подросток в той же семье"
-              action="Отправить ссылку"
-              onAction={() => sendInvite("teen")}
-            />
-          </>
-        )}
+      <div className="family-section-head">
+        <h2 className="family-section-title">Родители</h2>
+        <button type="button" className="section-invite-link" onClick={() => sendInvite("parent")}>
+          Пригласить
+        </button>
       </div>
-
-      <h2 style={{ fontSize: "1rem", margin: "16px 0 8px" }}>Родители</h2>
       <div className="card task-list">
         {parents.length === 0 ? (
           <EmptyMembers hint={emptyParentsHint(user.userType)} />
@@ -117,7 +86,12 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
         )}
       </div>
 
-      <h2 style={{ fontSize: "1rem", margin: "16px 0 8px" }}>Подростки</h2>
+      <div className="family-section-head">
+        <h2 className="family-section-title">Подростки</h2>
+        <button type="button" className="section-invite-link" onClick={() => sendInvite("teen")}>
+          Пригласить
+        </button>
+      </div>
       <div className="card task-list">
         {teens.length === 0 ? (
           <EmptyMembers hint={emptyTeensHint(user.userType)} />
@@ -132,41 +106,18 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
         Квесты и учебный бюджет в прототипе общие на семью. Отдельный прогресс на
         каждого подростка — позже.
       </p>
+
+      <button type="button" className="btn-primary-scroll" onClick={onDone}>
+        Готово
+      </button>
       <p className="hint-footer build-stamp">id {APP_BUILD_ID}</p>
-
-      <MainAction text="Готово" onClick={onDone} />
     </div>
-  );
-}
-
-function InviteRow({
-  icon,
-  title,
-  sub,
-  action,
-  onAction,
-}: {
-  icon: string;
-  title: string;
-  sub: string;
-  action: string;
-  onAction: () => void;
-}) {
-  return (
-    <button type="button" className="task-row" onClick={onAction}>
-      <span className="task-icon">{icon}</span>
-      <span>
-        <div className="task-title">{title}</div>
-        <div className="task-sub">{sub}</div>
-      </span>
-      <span className="inline-action">{action}</span>
-    </button>
   );
 }
 
 function EmptyMembers({ hint }: { hint: string }) {
   return (
-    <p style={{ color: "var(--fb-hint)", fontSize: "0.875rem", margin: 0, padding: "4px 0" }}>
+    <p className="empty-members-hint" style={{ color: "var(--fb-hint)", fontSize: "0.875rem" }}>
       {hint}
     </p>
   );
@@ -174,16 +125,16 @@ function EmptyMembers({ hint }: { hint: string }) {
 
 function emptyParentsHint(viewer: UserType): string {
   if (viewer === "parent") {
-    return "Пока только ты — пригласи второго родителя кнопкой выше.";
+    return "Пока только ты — нажми «Пригласить» справа.";
   }
-  return "Пока никого — попроси родителя зайти по ссылке выше.";
+  return "Пока никого — «Пригласить» справа или попроси зайти по ссылке.";
 }
 
 function emptyTeensHint(viewer: UserType): string {
   if (viewer === "parent") {
-    return "Пока никого — отправь ссылку ребёнку кнопкой выше.";
+    return "Пока никого — «Пригласить» справа.";
   }
-  return "Пока никого — отправь ссылку брату или сестре кнопкой выше.";
+  return "Пока никого — «Пригласить» справа.";
 }
 
 function MemberRow({ member }: { member: SessionUser["members"][0] }) {
