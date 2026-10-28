@@ -1,9 +1,12 @@
 ---
 id: T04
 title: Квест 1 — Неделя на 1 500 ₽
-status: backlog
+status: in-progress
 owns: [B, D]
 depends-on: [T02, T03]
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T04
+started: 2026-10-28
 ---
 
 # T04 — Квест «Неделя на 1 500 ₽»
