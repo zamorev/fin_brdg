@@ -16,6 +16,7 @@ _CSS = """
   --fb-gold-bg: #3a3328;
   --fb-green: #4fbf8b;
   --fb-green-bg: #1e3a3a;
+  --fb-red: #e8665a;
   --fb-blue: #5b8cff;
   --fb-blue-bg: #22356b;
   --fb-icon-bg: #2e3346;
@@ -102,6 +103,53 @@ _CSS = """
 .st-key-teen_open_agreements button {
   width: 100%; height: 100%; opacity: 0; cursor: pointer;
 }
+
+/* Quest 1: back link, card, sliders, total, result */
+.st-key-quest_week_nav .st-key-teen_back { margin: 0 0 4px; }
+.st-key-quest_week_nav .st-key-teen_back button {
+  border: none; background: transparent; padding: 4px 0; min-height: 0;
+}
+.st-key-quest_week_nav .st-key-teen_back button p { font-weight: 700; font-size: 17px; }
+.st-key-quest_week_card {
+  background: var(--fb-surface); border-radius: 28px; padding: 26px 20px 24px; gap: 0;
+}
+.st-key-quest_week_card [data-testid="stMarkdownContainer"] { margin-bottom: 0 !important; }
+.fb-quest-title { font-family: var(--fb-display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; line-height: 1.2; }
+.fb-quest-text { color: var(--fb-muted); font-size: 15px; line-height: 1.55; margin: 12px 0 14px; }
+.fb-amount { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: 16px; }
+.fb-amount-value { font-family: var(--fb-display); font-weight: 800; font-size: 15px; white-space: nowrap; }
+.st-key-quest_week_card [data-testid="stSlider"] { padding: 0 8px; }
+/* Thumb: the positioned div that wraps the hidden range input. */
+.st-key-quest_week_card [data-testid="stSlider"] div:has(> div > input[type="range"]) {
+  background: #1a7cff; box-shadow: none; width: 22px; height: 22px;
+}
+/* Track: plain line as in the mockup instead of the theme-colored fill. */
+.st-key-quest_week_card [data-testid="stSlider"] div[style*="position: relative"] > div:first-child {
+  background: var(--fb-line) !important;
+}
+.st-key-quest_week_card [data-testid="stSliderThumbValue"],
+.st-key-quest_week_card [data-testid="stSliderTickBar"] { display: none; }
+.fb-total { border-top: 1px solid var(--fb-line); margin-top: 18px; padding-top: 18px; }
+.fb-total-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; }
+.fb-total-label { color: var(--fb-muted); font-size: 16px; }
+.fb-total-value { font-family: var(--fb-display); font-weight: 800; font-size: 15px; color: var(--fb-gold); white-space: nowrap; }
+.fb-total-value.fb-ok { color: var(--fb-green); }
+.fb-total-value.fb-over { color: var(--fb-red); }
+.fb-total-hint { color: var(--fb-muted); font-size: 13px; text-align: right; margin-top: 4px; }
+.st-key-quest_week_check { margin-top: 18px; }
+.st-key-quest_week_check button {
+  border: none; border-radius: 999px; min-height: 56px; background: #2f6fed; color: #fff;
+}
+.st-key-quest_week_check button:hover,
+.st-key-quest_week_check button:focus:not(:active) { background: #3b7bf5; color: #fff; }
+.st-key-quest_week_check button p { font-weight: 700; font-size: 17px; color: #fff; }
+.fb-result { border-radius: 18px; padding: 16px 18px; margin-top: 16px; font-size: 14px; line-height: 1.5; }
+.fb-result-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+.fb-result ul { margin: 0; padding-left: 18px; }
+.fb-result-error { background: var(--fb-gold-bg); }
+.fb-result-error .fb-result-title { color: var(--fb-gold); }
+.fb-result-ok { background: var(--fb-green-bg); }
+.fb-result-ok .fb-result-title { color: var(--fb-green); }
 
 /* Stub screens */
 .fb-stub {

@@ -1,4 +1,4 @@
-"""Building blocks of teen screens: header, level card, task rows, stub screen."""
+"""Building blocks of teen screens: header, level card, task rows, quest 1 parts, stub screen."""
 
 from collections.abc import Callable
 from html import escape
@@ -96,6 +96,70 @@ def task_row(
             <div class="fb-row-sub">{escape(subtitle)}</div>
           </div>
           {right}
+        </div>
+        """
+    )
+
+
+def quest_intro(title: str, text: str) -> None:
+    _html(
+        f"""
+        <div class="fb-quest-title">{escape(title).replace(" ₽", "&nbsp;₽")}</div>
+        <div class="fb-quest-text">{escape(text)}</div>
+        """
+    )
+
+
+def amount_label(label: str, amount_text: str) -> None:
+    """Category name and its amount above a label-less slider."""
+    _html(
+        f"""
+        <div class="fb-amount">
+          <span>{escape(label)}</span>
+          <span class="fb-amount-value">{escape(amount_text)}</span>
+        </div>
+        """
+    )
+
+
+TONE_UNDER = "fb-under"
+TONE_OK = "fb-ok"
+TONE_OVER = "fb-over"
+
+
+def quest_total(total_text: str, hint: str, *, tone: str) -> None:
+    """Total row; tone is TONE_UNDER (gold), TONE_OK (green) or TONE_OVER (red)."""
+    _html(
+        f"""
+        <div class="fb-total">
+          <div class="fb-total-row">
+            <span class="fb-total-label">Распределено</span>
+            <span class="fb-total-value {tone}">{escape(total_text)}</span>
+          </div>
+          <div class="fb-total-hint">{escape(hint)}</div>
+        </div>
+        """
+    )
+
+
+def quest_errors(title: str, messages: list[str]) -> None:
+    items = "".join(f"<li>{escape(message)}</li>" for message in messages)
+    _html(
+        f"""
+        <div class="fb-result fb-result-error">
+          <div class="fb-result-title">{escape(title)}</div>
+          <ul>{items}</ul>
+        </div>
+        """
+    )
+
+
+def quest_success(title: str, text: str) -> None:
+    _html(
+        f"""
+        <div class="fb-result fb-result-ok">
+          <div class="fb-result-title">{escape(title)}</div>
+          <div class="fb-result-text">{escape(text)}</div>
         </div>
         """
     )
