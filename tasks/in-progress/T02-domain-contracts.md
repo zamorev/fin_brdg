@@ -1,9 +1,12 @@
 ---
 id: T02
 title: Доменные константы и контракты бюджета
-status: backlog
-owns: [E]
+status: in-progress
+owns: [E, G]  # G: только tests/test_domain.py
 depends-on: []
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T02
+started: 2026-10-28
 ---
 
 # T02 — Доменные константы и контракты
