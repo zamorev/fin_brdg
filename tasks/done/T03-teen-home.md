@@ -1,7 +1,7 @@
 ---
 id: T03
 title: Главная подростка
-status: in-progress
+status: done
 owns: [B]
 depends-on: [T01, T02]
 claimed-by: sw3artog0d
