@@ -19,3 +19,6 @@ functions/.env
 
 # Локальный конфиг превью Claude Code
 .claude/launch.json
+
+# Логи эмуляторов Firebase
+*-debug.log

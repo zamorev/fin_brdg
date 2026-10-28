@@ -11,6 +11,7 @@
 | [TELEGRAM_BOT.md](TELEGRAM_BOT.md) | Тексты @fin_brdg_bot, BotFather, маркетинг |
 | [FIREBASE_HOSTING.md](FIREBASE_HOSTING.md) | Mini App на Hosting, деплой, URL для BotFather |
 | [V2.md](V2.md) | **TWA prod:** `v2/web` + `functions`; онбординг, invite — **T13 in-progress** в `tasks/in-progress/` |
+| [LOCAL_DEV.md](LOCAL_DEV.md) | Локальный запуск v2 на эмуляторах Firebase (без Telegram и prod) |
 
 ## Архитектура и качество
 
