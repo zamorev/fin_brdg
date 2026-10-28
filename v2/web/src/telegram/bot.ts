@@ -15,10 +15,21 @@ export type InvitePayload = {
   roleHint: UserType | null;
 };
 
-/** Прямая ссылка в Main Mini App — роль в startapp (t_/p_), чтобы не спрашивать «кто ты». */
+/** Deep link в чат бота → /start inv_t_CODE → pendingInvites → Mini App. */
 export function botInviteLink(inviteCode: string, target: InviteTarget): string {
   const code = inviteCode.trim().toUpperCase();
+  const param = `inv_${target === "teen" ? "t" : "p"}_${code}`;
+  return `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(param)}`;
+}
+
+/** Прямой запуск Mini App (если клиент поддерживает startapp без чата). */
+export function botInviteDirectAppLink(inviteCode: string, target: InviteTarget): string {
+  const code = inviteCode.trim().toUpperCase();
   const param = `${target === "teen" ? "t" : "p"}_${code}`;
+  const short = WEBAPP_SHORT_NAME.trim();
+  if (short) {
+    return `https://t.me/${BOT_USERNAME}/${short}?startapp=${encodeURIComponent(param)}`;
+  }
   return `https://t.me/${BOT_USERNAME}?startapp=${encodeURIComponent(param)}`;
 }
 
@@ -30,13 +41,17 @@ export function inviteShareText(target: InviteTarget): string {
   return [
     "Квесты про деньги в Fin Bridge — для семьи и друзей.",
     roleLine,
-    "Открой ссылку — сразу попадёшь в семью.",
+    "Откроется чат бота — нажми «Войти в семью» или кнопку Fin Bridge внизу.",
   ].join("\n");
 }
 
 export function parseInvitePayload(raw: string | undefined): InvitePayload | null {
   const param = raw?.trim();
   if (!param) return null;
+
+  if (param.toLowerCase().startsWith("inv_")) {
+    return parseInvitePayload(param.slice(4));
+  }
 
   const legacy = param.match(/^([pt])_([A-Z0-9]+)$/i);
   if (legacy) {
@@ -65,7 +80,7 @@ type TwaLike = {
 };
 
 function readRawStartParam(tg: TwaLike | null | undefined): string | undefined {
-  if (!tg) return undefined;
+  if (!tg) return readStartParamFromUrl();
   const fromUnsafe = tg.initDataUnsafe?.start_param?.trim();
   if (fromUnsafe) return fromUnsafe;
   const fromProp = tg.startParam?.trim();
@@ -74,7 +89,41 @@ function readRawStartParam(tg: TwaLike | null | undefined): string | undefined {
     const fromInit = new URLSearchParams(tg.initData).get("start_param")?.trim();
     if (fromInit) return fromInit;
   }
+  return readStartParamFromUrl();
+}
+
+function readStartParamFromUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const url = new URL(window.location.href);
+    const fromQuery =
+      url.searchParams.get("tgWebAppStartParam")?.trim() ??
+      url.searchParams.get("startapp")?.trim();
+    if (fromQuery) return decodeURIComponent(fromQuery);
+    const hash = url.hash.replace(/^#/, "");
+    if (hash.includes("tgWebAppData=")) {
+      const encoded = hash.split("tgWebAppData=")[1]?.split("&")[0];
+      if (encoded) {
+        const decoded = decodeURIComponent(encoded);
+        const param = new URLSearchParams(decoded).get("start_param")?.trim();
+        if (param) return param;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
   return undefined;
+}
+
+export function persistInviteRaw(raw: string): InvitePayload | null {
+  const parsed = parseInvitePayload(raw);
+  if (!parsed) return null;
+  try {
+    sessionStorage.setItem(INVITE_SESSION_KEY, raw.trim());
+  } catch {
+    /* private mode */
+  }
+  return parsed;
 }
 
 /** Сохраняем start_param в sessionStorage — Menu Button без кода не затирает invite. */

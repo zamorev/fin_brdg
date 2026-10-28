@@ -22,7 +22,7 @@
 
 - **Прод Telegram Mini App** — только **`v2/web`** → `v2/web/dist`. Каталог **`web/`** не деплоить и не расширять для MVP.
 - Логика v2 — **`functions/`** + Firestore; Streamlit **`app/`** + SQLite **`src/db`** — другой продуктовый контур (v1).
-Перед правками invite/онбординга/аватарок читать [docs/V2.md](../docs/V2.md), [T11](../tasks/done/T11-v2-family-invites-twa.md), [T12](../tasks/done/T12-v2-onboarding-users-avatars.md).
+Перед правками invite/онбординга/аватарок читать [docs/V2.md](../docs/V2.md), [T11](../tasks/done/T11-v2-family-invites-twa.md), [T12](../tasks/done/T12-v2-onboarding-users-avatars.md). **Активно: [T13](../tasks/in-progress/T13-v2-invite-bot-webhook.md)** — не дублировать webhook/pendingInvites.
 
 ## Правила
 

@@ -50,6 +50,8 @@ export type OnboardingPreview = {
   needsOnboarding: true;
   telegramId: number;
   displayName: string;
+  inviteParam?: string;
+  inviteError?: string;
 };
 
 export type DecideAction =

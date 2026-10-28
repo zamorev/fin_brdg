@@ -7,6 +7,8 @@ import {
   captureInviteFromTwa,
   clearStoredInvite,
   inviteParamForApi,
+  parseInvitePayload,
+  persistInviteRaw,
   roleHintLabel,
   type InvitePayload,
 } from "../telegram/bot";
@@ -18,15 +20,23 @@ type Props = {
 
 type Step = "invite-join" | "pick-role" | "create-family";
 
+function inviteFromPreview(preview: OnboardingPreview): InvitePayload | null {
+  if (!preview.inviteParam) return null;
+  return persistInviteRaw(preview.inviteParam) ?? parseInvitePayload(preview.inviteParam);
+}
+
 export function OnboardingScreen({ preview, onDone }: Props) {
   const { haptic, tg } = useTwa();
-  const inviteRef = useRef<InvitePayload | null>(captureInviteFromTwa(tg));
-  const [invite] = useState<InvitePayload | null>(() => inviteRef.current);
+  const [invite, setInvite] = useState<InvitePayload | null>(() => {
+    const fromPreview = inviteFromPreview(preview);
+    if (fromPreview) return fromPreview;
+    return captureInviteFromTwa(tg);
+  });
   const [step, setStep] = useState<Step>(() =>
-    inviteRef.current ? "invite-join" : "pick-role",
+    inviteFromPreview(preview) || captureInviteFromTwa(tg) ? "invite-join" : "pick-role",
   );
   const [userType, setUserType] = useState<UserType | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(preview.inviteError ?? null);
   const [loading, setLoading] = useState(false);
   const [resolvedRole, setResolvedRole] = useState<UserType | null>(
     invite?.roleHint ?? null,
@@ -35,8 +45,20 @@ export function OnboardingScreen({ preview, onDone }: Props) {
 
   useEffect(() => {
     const payload = captureInviteFromTwa(tg);
-    if (payload) inviteRef.current = payload;
+    if (!payload) return;
+    setInvite(payload);
+    setStep((prev) => (prev === "pick-role" || prev === "create-family" ? "invite-join" : prev));
   }, [tg]);
+
+  useEffect(() => {
+    if (preview.inviteParam) {
+      const payload = persistInviteRaw(preview.inviteParam);
+      if (payload) {
+        setInvite(payload);
+        setStep("invite-join");
+      }
+    }
+  }, [preview.inviteParam]);
 
   useEffect(() => {
     if (step !== "invite-join" || !invite || joinAttempted.current) return;
@@ -74,7 +96,7 @@ export function OnboardingScreen({ preview, onDone }: Props) {
 
   const abandonInvite = () => {
     clearStoredInvite();
-    inviteRef.current = null;
+    setInvite(null);
     joinAttempted.current = false;
     setError(null);
     setStep("pick-role");
@@ -128,6 +150,7 @@ export function OnboardingScreen({ preview, onDone }: Props) {
   }
 
   if (step === "pick-role") {
+    const pendingInvite = captureInviteFromTwa(tg);
     return (
       <div className="app-shell">
         <h1 className="screen-title">Кто ты в Fin Bridge?</h1>
@@ -135,6 +158,22 @@ export function OnboardingScreen({ preview, onDone }: Props) {
         <p style={{ color: "var(--fb-hint)", fontSize: "0.8125rem", marginBottom: 16 }}>
           Одна роль на этот Telegram — потом сменить нельзя. В семью — по ссылке от близких.
         </p>
+        {pendingInvite ? (
+          <div className="error-banner" style={{ marginBottom: 12 }}>
+            Есть ссылка-приглашение —{" "}
+            <button
+              type="button"
+              className="text-link"
+              style={{ display: "inline", padding: 0 }}
+              onClick={() => {
+                setInvite(pendingInvite);
+                setStep("invite-join");
+              }}
+            >
+              войти в семью
+            </button>
+          </div>
+        ) : null}
         <p style={{ color: "var(--fb-hint)", fontSize: "0.875rem", marginBottom: 12 }}>
           {preview.displayName}
         </p>

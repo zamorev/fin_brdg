@@ -3,11 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseStartParam = parseStartParam;
 exports.parseInitData = parseInitData;
 exports.validateInitData = validateInitData;
 exports.authMiddleware = authMiddleware;
 exports.displayName = displayName;
 const node_crypto_1 = __importDefault(require("node:crypto"));
+function parseStartParam(initData) {
+    if (!initData)
+        return undefined;
+    const value = new URLSearchParams(initData).get("start_param")?.trim();
+    return value || undefined;
+}
 function parseInitData(initData) {
     if (!initData)
         return null;
@@ -61,6 +68,7 @@ function authMiddleware(req, res, next) {
         return;
     }
     req.telegramUser = user;
+    req.telegramStartParam = parseStartParam(initData);
     next();
 }
 function displayName(user) {

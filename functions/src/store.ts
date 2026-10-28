@@ -14,6 +14,7 @@ export type { Allocation };
 import type { TelegramUser } from "./telegram";
 import { displayName } from "./telegram";
 import { schedulePhotoRefresh, serveFamilyMemberAvatar, syncUserProfilePhoto } from "./profilePhoto";
+import { consumePendingInvite } from "./pendingInvite";
 
 const db = () => getFirestore();
 
@@ -331,23 +332,58 @@ async function sessionForUser(
 }
 
 export type MeResponse =
-  | { needsOnboarding: true; telegramId: number; displayName: string }
+  | {
+      needsOnboarding: true;
+      telegramId: number;
+      displayName: string;
+      /** start_param из initData, если invite не удался на сервере */
+      inviteParam?: string;
+      inviteError?: string;
+    }
   | ({ needsOnboarding: false } & ReturnType<typeof buildSessionPayload>);
 
-export async function buildMe(user: TelegramUser, botToken?: string): Promise<MeResponse> {
-  const profile = await ensureUserRecord(user, botToken);
-  if (!isOnboardedUser(profile)) {
-    return {
-      needsOnboarding: true,
-      telegramId: user.id,
-      displayName: profile.displayName || displayName(user),
-    };
+export async function buildMe(
+  user: TelegramUser,
+  botToken?: string,
+  startParam?: string,
+): Promise<MeResponse> {
+  await ensureUserRecord(user, botToken);
+  const profile = await resolveUser(user.id);
+  const display = profile?.displayName || displayName(user);
+
+  if (profile && isOnboardedUser(profile)) {
+    if (botToken) {
+      schedulePhotoRefresh(profile.familyId, botToken, user);
+    }
+    const session = await sessionForUser(user, profile);
+    return { needsOnboarding: false, ...session };
   }
-  if (botToken) {
-    schedulePhotoRefresh(profile.familyId, botToken, user);
+
+  const inviteFromInit = startParam?.trim();
+  let inviteRaw = inviteFromInit;
+  if (!inviteRaw && profile && !isOnboardedUser(profile)) {
+    inviteRaw = await consumePendingInvite(user.id);
   }
-  const session = await sessionForUser(user, profile);
-  return { needsOnboarding: false, ...session };
+  if (inviteRaw) {
+    try {
+      const session = await joinByInviteCode(user, inviteRaw, botToken);
+      return { needsOnboarding: false, ...session };
+    } catch (e) {
+      return {
+        needsOnboarding: true,
+        telegramId: user.id,
+        displayName: display,
+        inviteParam: inviteRaw,
+        inviteError: e instanceof Error ? e.message : "Не получилось войти по ссылке",
+      };
+    }
+  }
+
+  return {
+    needsOnboarding: true,
+    telegramId: user.id,
+    displayName: display,
+  };
 }
 
 export async function completeOnboarding(

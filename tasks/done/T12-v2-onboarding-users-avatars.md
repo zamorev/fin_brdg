@@ -50,6 +50,8 @@ started: 2026-10-28
 
 Реализовано в рабочей копии (коммиты `T12: …` по [harness/COORDINATION.md](../../harness/COORDINATION.md)). Прод обновлялся через `./scripts/deploy-v2.sh` / functions-only deploy.
 
+**Продолжение:** [T13](../in-progress/T13-v2-invite-bot-webhook.md) — webhook и `pendingInvites` (активная задача).
+
 ## Verify (перед merge)
 
 ```bash

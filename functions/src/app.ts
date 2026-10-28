@@ -1,4 +1,5 @@
 import express from "express";
+import { handleTelegramUpdate } from "./botWebhook";
 import { authMiddleware } from "./telegram";
 import {
   buildMe,
@@ -33,9 +34,28 @@ export function createApp() {
     res.json({ ok: true });
   });
 
+  app.post("/api/telegram/webhook", async (req, res) => {
+    const token = req.botToken ?? "";
+    if (!token) {
+      res.status(503).json({ ok: false, error: "no bot token" });
+      return;
+    }
+    try {
+      await handleTelegramUpdate(req.body, token);
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("telegram webhook", e);
+      res.status(500).json({ ok: false });
+    }
+  });
+
   app.get("/api/me", authMiddleware, async (req, res) => {
     try {
-      const session = await buildMe(req.telegramUser!, req.botToken);
+      const session = await buildMe(
+        req.telegramUser!,
+        req.botToken,
+        req.telegramStartParam,
+      );
       res.json(session);
     } catch (e) {
       res.status(500).json({

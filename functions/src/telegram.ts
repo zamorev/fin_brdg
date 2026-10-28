@@ -10,6 +10,12 @@ export type TelegramUser = {
   photo_url?: string;
 };
 
+export function parseStartParam(initData: string): string | undefined {
+  if (!initData) return undefined;
+  const value = new URLSearchParams(initData).get("start_param")?.trim();
+  return value || undefined;
+}
+
 export function parseInitData(initData: string): TelegramUser | null {
   if (!initData) return null;
   const params = new URLSearchParams(initData);
@@ -70,6 +76,7 @@ export function authMiddleware(
     return;
   }
   req.telegramUser = user;
+  req.telegramStartParam = parseStartParam(initData);
   next();
 }
 
@@ -77,6 +84,7 @@ declare global {
   namespace Express {
     interface Request {
       telegramUser?: TelegramUser;
+      telegramStartParam?: string;
       botToken?: string;
     }
   }

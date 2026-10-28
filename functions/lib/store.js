@@ -22,6 +22,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const domain_1 = require("./domain");
 const telegram_1 = require("./telegram");
 const profilePhoto_1 = require("./profilePhoto");
+const pendingInvite_1 = require("./pendingInvite");
 const db = () => (0, firestore_1.getFirestore)();
 function newInviteCode() {
     return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -234,20 +235,42 @@ async function sessionForUser(tg, profile) {
     const members = await listFamilyMembers(profile.familyId, tg.id);
     return buildSessionPayload(tg, profile, family, members, active);
 }
-async function buildMe(user, botToken) {
-    const profile = await ensureUserRecord(user, botToken);
-    if (!isOnboardedUser(profile)) {
-        return {
-            needsOnboarding: true,
-            telegramId: user.id,
-            displayName: profile.displayName || (0, telegram_1.displayName)(user),
-        };
+async function buildMe(user, botToken, startParam) {
+    await ensureUserRecord(user, botToken);
+    const profile = await resolveUser(user.id);
+    const display = profile?.displayName || (0, telegram_1.displayName)(user);
+    if (profile && isOnboardedUser(profile)) {
+        if (botToken) {
+            (0, profilePhoto_1.schedulePhotoRefresh)(profile.familyId, botToken, user);
+        }
+        const session = await sessionForUser(user, profile);
+        return { needsOnboarding: false, ...session };
     }
-    if (botToken) {
-        (0, profilePhoto_1.schedulePhotoRefresh)(profile.familyId, botToken, user);
+    const inviteFromInit = startParam?.trim();
+    let inviteRaw = inviteFromInit;
+    if (!inviteRaw && profile && !isOnboardedUser(profile)) {
+        inviteRaw = await (0, pendingInvite_1.consumePendingInvite)(user.id);
     }
-    const session = await sessionForUser(user, profile);
-    return { needsOnboarding: false, ...session };
+    if (inviteRaw) {
+        try {
+            const session = await joinByInviteCode(user, inviteRaw, botToken);
+            return { needsOnboarding: false, ...session };
+        }
+        catch (e) {
+            return {
+                needsOnboarding: true,
+                telegramId: user.id,
+                displayName: display,
+                inviteParam: inviteRaw,
+                inviteError: e instanceof Error ? e.message : "Не получилось войти по ссылке",
+            };
+        }
+    }
+    return {
+        needsOnboarding: true,
+        telegramId: user.id,
+        displayName: display,
+    };
 }
 async function completeOnboarding(tg, userType, mode, inviteCodeRaw, botToken) {
     await ensureUserRecord(tg, botToken);

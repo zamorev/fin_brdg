@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setBotTokenProvider = setBotTokenProvider;
 exports.createApp = createApp;
 const express_1 = __importDefault(require("express"));
+const botWebhook_1 = require("./botWebhook");
 const telegram_1 = require("./telegram");
 const store_1 = require("./store");
 let resolveBotToken = () => process.env.TELEGRAM_BOT_TOKEN ?? "";
@@ -22,9 +23,24 @@ function createApp() {
     app.get("/api/health", (_req, res) => {
         res.json({ ok: true });
     });
+    app.post("/api/telegram/webhook", async (req, res) => {
+        const token = req.botToken ?? "";
+        if (!token) {
+            res.status(503).json({ ok: false, error: "no bot token" });
+            return;
+        }
+        try {
+            await (0, botWebhook_1.handleTelegramUpdate)(req.body, token);
+            res.json({ ok: true });
+        }
+        catch (e) {
+            console.error("telegram webhook", e);
+            res.status(500).json({ ok: false });
+        }
+    });
     app.get("/api/me", telegram_1.authMiddleware, async (req, res) => {
         try {
-            const session = await (0, store_1.buildMe)(req.telegramUser, req.botToken);
+            const session = await (0, store_1.buildMe)(req.telegramUser, req.botToken, req.telegramStartParam);
             res.json(session);
         }
         catch (e) {
