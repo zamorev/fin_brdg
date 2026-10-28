@@ -1,15 +1,30 @@
-"""Fin Bridge — Streamlit entry (scaffold). See tasks/T01."""
+"""Fin Bridge — Streamlit entry: role pick and routing to app/pages. See tasks/T01."""
 
-import streamlit as st
+import sys
+from collections.abc import Callable
+from pathlib import Path
 
-st.set_page_config(page_title="Fin Bridge", layout="wide")
+# `streamlit run app/main.py` puts only app/ on sys.path; pages import app.* and src.*.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import streamlit as st  # noqa: E402
+
+from app.pages import parent_home, teen_home  # noqa: E402
 
 ROLE_TEEN = "teen"
 ROLE_PARENT = "parent"
 
+# New screens: add a module in app/pages/ with render() and register it here.
+PAGES: dict[str, Callable[[], None]] = {
+    ROLE_TEEN: teen_home.render,
+    ROLE_PARENT: parent_home.render,
+}
+
 
 def _pick_role() -> str | None:
-    if "role" in st.session_state and st.session_state["role"]:
+    if st.session_state.get("role") in PAGES:
         return st.session_state["role"]
     st.title("Fin Bridge")
     st.caption("Прототип хакатона — выберите роль")
@@ -25,7 +40,7 @@ def _pick_role() -> str | None:
     return None
 
 
-def main() -> None:
+def _router() -> None:
     role = _pick_role()
     if role is None:
         return
@@ -34,12 +49,14 @@ def main() -> None:
         st.session_state.pop("role", None)
         st.rerun()
 
-    if role == ROLE_TEEN:
-        st.header("Подросток")
-        st.info("Заглушка главной. Задача T03.")
-    else:
-        st.header("Родитель")
-        st.info("Заглушка дашборда. Задача T07.")
+    PAGES[role]()
+
+
+def main() -> None:
+    st.set_page_config(page_title="Fin Bridge", layout="wide")
+    # Explicit navigation disables auto-discovery of app/pages/ as multipage
+    # entries, so a teen can't open parent screens from the sidebar.
+    st.navigation([st.Page(_router, title="Fin Bridge", default=True)], position="hidden").run()
 
 
 if __name__ == "__main__":
