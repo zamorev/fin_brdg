@@ -41,7 +41,7 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
 
   const sendInvite = (target: InviteTarget) => {
     const token = target === "parent" ? inviteTokens.current.parent : inviteTokens.current.teen;
-    shareFamilyInvite(target, token);
+    shareFamilyInvite(target, token, user.telegramId);
     haptic("light");
   };
 

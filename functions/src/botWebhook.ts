@@ -1,5 +1,6 @@
-import { botStartDeepLink, normalizeInviteParam } from "./inviteParam";
+import { botStartDeepLink, normalizeInviteParam, parseInviterTelegramId } from "./inviteParam";
 import { savePendingInvite } from "./pendingInvite";
+import { resolveInviterDisplayName } from "./store";
 
 const WEBAPP_URL = process.env.WEBAPP_URL ?? "https://fin-brdg.web.app";
 
@@ -30,31 +31,56 @@ async function telegramApi(botToken: string, method: string, body: object): Prom
   }
 }
 
+async function sendWelcome(chatId: number, botToken: string): Promise<void> {
+  await telegramApi(botToken, "sendMessage", {
+    chat_id: chatId,
+    text: "Привет 👋\n\nКвесты про бюджет — в Mini App. Жми кнопку «Fin Bridge» внизу или приходи по ссылке от семьи.",
+  });
+}
+
 export async function handleTelegramUpdate(update: TelegramUpdate, botToken: string): Promise<void> {
   const message = update.message;
   if (!message?.text || !message.from?.id) return;
 
-  const payload = extractStartPayload(message.text);
-  if (payload === undefined && !message.text.startsWith("/start")) return;
-
   const chatId = message.chat.id;
   const userId = message.from.id;
+  const text = message.text.trim();
 
-  if (!payload) {
+  const startPayload = extractStartPayload(text);
+  const isStart = startPayload !== undefined || /^\/start(?:@\w+)?/i.test(text);
+
+  if (/^\/help(?:@\w+)?/i.test(text)) {
     await telegramApi(botToken, "sendMessage", {
       chat_id: chatId,
-      text: "Привет 👋\n\nКвесты про бюджет — в Mini App. Жми кнопку «Fin Bridge» внизу или приходи по ссылке от семьи.",
+      text:
+        "Подключаетесь вдвоём, каждый со своего аккаунта. Квесты общие.\n\n" +
+        "В семью — по ссылке от близких из Fin Bridge. Потом жми кнопку Fin Bridge внизу.",
     });
     return;
   }
 
-  const inviteParam = normalizeInviteParam(payload);
+  if (/^\/(open|about)(?:@\w+)?/i.test(text)) {
+    await sendWelcome(chatId, botToken);
+    return;
+  }
+
+  if (!isStart) return;
+
+  if (!startPayload) {
+    await sendWelcome(chatId, botToken);
+    return;
+  }
+  const inviteParam = normalizeInviteParam(startPayload);
   if (inviteParam) {
     await savePendingInvite(userId, inviteParam);
+    const inviterId = parseInviterTelegramId(startPayload);
+    const inviterName = await resolveInviterDisplayName(inviteParam, inviterId);
+    const headline = inviterName
+      ? `${inviterName} приглашает тебя в семью 🎒`
+      : "Тебя приглашают в семью 🎒";
     await telegramApi(botToken, "sendMessage", {
       chat_id: chatId,
-      text:
-        "Тебя ждут в семье 🎒\n\nЖми «Войти в семью» — или кнопку Fin Bridge внизу. Связка уже сохранена на пару дней.",
+      text: `${headline}\n\nЖми «Войти в семью» — или кнопку Fin Bridge внизу.`,
       reply_markup: {
         inline_keyboard: [
           [

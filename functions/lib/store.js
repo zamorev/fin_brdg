@@ -5,6 +5,7 @@ exports.resolveUser = resolveUser;
 exports.isOnboardedUser = isOnboardedUser;
 exports.ensureUserRecord = ensureUserRecord;
 exports.previewInviteCode = previewInviteCode;
+exports.resolveInviterDisplayName = resolveInviterDisplayName;
 exports.getFamily = getFamily;
 exports.listFamilyMembers = listFamilyMembers;
 exports.getActiveRequest = getActiveRequest;
@@ -146,6 +147,40 @@ async function previewInviteCode(codeRaw) {
     if (!resolved?.intendedRole)
         return null;
     return { userType: resolved.intendedRole };
+}
+/** Имя для текста бота «{имя} приглашает тебя в семью». */
+async function resolveInviterDisplayName(inviteParamNormalized, inviterTelegramId) {
+    if (inviterTelegramId) {
+        const doc = await db().collection("users").doc(String(inviterTelegramId)).get();
+        if (doc.exists) {
+            const data = doc.data();
+            const name = data.displayName?.trim();
+            if (name && isOnboardedUser(data))
+                return name;
+        }
+    }
+    let code = inviteParamNormalized.trim().toUpperCase();
+    const prefixed = inviteParamNormalized.match(/^([pt])_(.+)$/i);
+    if (prefixed) {
+        code = prefixed[2].trim().toUpperCase();
+    }
+    const resolved = await resolveFamilyByInviteCode(code);
+    if (!resolved)
+        return null;
+    const q = await db().collection("users").where("familyId", "==", resolved.familyId).get();
+    let fallback = null;
+    for (const memberDoc of q.docs) {
+        const data = memberDoc.data();
+        if (!isOnboardedUser(data))
+            continue;
+        const name = data.displayName?.trim();
+        if (!name)
+            continue;
+        if (data.userType === "parent")
+            return name;
+        fallback = fallback ?? name;
+    }
+    return fallback;
 }
 async function getFamily(familyId) {
     const doc = await db().collection("families").doc(familyId).get();

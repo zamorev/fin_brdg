@@ -225,6 +225,41 @@ export async function previewInviteCode(
   return { userType: resolved.intendedRole };
 }
 
+/** Имя для текста бота «{имя} приглашает тебя в семью». */
+export async function resolveInviterDisplayName(
+  inviteParamNormalized: string,
+  inviterTelegramId?: number,
+): Promise<string | null> {
+  if (inviterTelegramId) {
+    const doc = await db().collection("users").doc(String(inviterTelegramId)).get();
+    if (doc.exists) {
+      const data = doc.data() as UserDoc;
+      const name = data.displayName?.trim();
+      if (name && isOnboardedUser(data)) return name;
+    }
+  }
+
+  let code = inviteParamNormalized.trim().toUpperCase();
+  const prefixed = inviteParamNormalized.match(/^([pt])_(.+)$/i);
+  if (prefixed) {
+    code = prefixed[2].trim().toUpperCase();
+  }
+  const resolved = await resolveFamilyByInviteCode(code);
+  if (!resolved) return null;
+
+  const q = await db().collection("users").where("familyId", "==", resolved.familyId).get();
+  let fallback: string | null = null;
+  for (const memberDoc of q.docs) {
+    const data = memberDoc.data() as UserDoc;
+    if (!isOnboardedUser(data)) continue;
+    const name = data.displayName?.trim();
+    if (!name) continue;
+    if (data.userType === "parent") return name;
+    fallback = fallback ?? name;
+  }
+  return fallback;
+}
+
 export async function getFamily(familyId: string): Promise<FamilyDoc> {
   const doc = await db().collection("families").doc(familyId).get();
   if (!doc.exists) {

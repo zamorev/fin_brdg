@@ -1,11 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.stripInviterSuffix = stripInviterSuffix;
+exports.parseInviterTelegramId = parseInviterTelegramId;
+exports.appendInviterSuffix = appendInviterSuffix;
 exports.normalizeInviteParam = normalizeInviteParam;
 exports.roleHintFromParam = roleHintFromParam;
 exports.botStartDeepLink = botStartDeepLink;
+/** Суффикс `_i<telegramId>` — кто отправил ссылку (не участвует в join). */
+function stripInviterSuffix(raw) {
+    return raw.trim().replace(/_i\d{5,15}$/i, "");
+}
+function parseInviterTelegramId(raw) {
+    const m = raw.trim().match(/_i(\d{5,15})$/i);
+    if (!m)
+        return undefined;
+    const id = Number(m[1]);
+    return Number.isFinite(id) ? id : undefined;
+}
+function appendInviterSuffix(inviteParam, inviterTelegramId) {
+    return `${inviteParam}_i${inviterTelegramId}`;
+}
 /** Парсинг invite из start_param / ?start= / pendingInvites. */
 function normalizeInviteParam(raw) {
-    const param = raw.trim();
+    const param = stripInviterSuffix(raw);
     if (!param)
         return null;
     if (param.startsWith("inv_")) {

@@ -15,10 +15,21 @@ export type InvitePayload = {
   roleHint: UserType | null;
 };
 
+function stripInviterSuffix(raw: string): string {
+  return raw.trim().replace(/_i\d{5,15}$/i, "");
+}
+
 /** Deep link в чат бота → /start inv_t_CODE → pendingInvites → Mini App. */
-export function botInviteLink(inviteCode: string, target: InviteTarget): string {
+export function botInviteLink(
+  inviteCode: string,
+  target: InviteTarget,
+  inviterTelegramId?: number,
+): string {
   const code = inviteCode.trim().toUpperCase();
-  const param = `inv_${target === "teen" ? "t" : "p"}_${code}`;
+  let param = `inv_${target === "teen" ? "t" : "p"}_${code}`;
+  if (inviterTelegramId) {
+    param = `${param}_i${inviterTelegramId}`;
+  }
   return `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(param)}`;
 }
 
@@ -46,7 +57,7 @@ export function inviteShareText(target: InviteTarget): string {
 }
 
 export function parseInvitePayload(raw: string | undefined): InvitePayload | null {
-  const param = raw?.trim();
+  const param = stripInviterSuffix(raw ?? "");
   if (!param) return null;
 
   if (param.toLowerCase().startsWith("inv_")) {

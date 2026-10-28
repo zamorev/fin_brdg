@@ -64,7 +64,7 @@ type TwaContextValue = {
   hideMainButton: () => void;
   haptic: (type: "success" | "error" | "light") => void;
   setBackHandler: (handler: (() => void) | null) => void;
-  shareFamilyInvite: (target: InviteTarget, inviteCode: string) => void;
+  shareFamilyInvite: (target: InviteTarget, inviteCode: string, inviterTelegramId?: number) => void;
 };
 
 const TwaContext = createContext<TwaContextValue | null>(null);
@@ -183,9 +183,9 @@ export function TwaProvider({ children }: { children: ReactNode }) {
   );
 
   const shareFamilyInvite = useCallback(
-    (target: InviteTarget, inviteCode: string) => {
+    (target: InviteTarget, inviteCode: string, inviterTelegramId?: number) => {
       const text = inviteShareText(target);
-      const link = botInviteLink(inviteCode, target);
+      const link = botInviteLink(inviteCode, target, inviterTelegramId);
       const payload = `${text}\n${link}`;
       if (tg?.openTelegramLink) {
         tg.openTelegramLink(

@@ -29,9 +29,24 @@
 | Direct Link / invite | `?startapp=t_<token>` или `p_<token>` на `@fin_brdg_bot` — см. [V2.md](V2.md) |
 | Domain | `fin-brdg.web.app` |
 
-Аватар — узнаваемый в круге, без мелкого текста.
+**Webhook (обязательно, иначе `/start` молчит):** один раз с токеном **этого** бота:
 
-Пока бот не на сервере, ответы в чате не идут — about, description и меню команд уже работают.
+```bash
+export TELEGRAM_BOT_TOKEN='…'   # тот же, что в Firebase Functions → TELEGRAM_BOT_TOKEN
+./scripts/set-telegram-webhook.sh
+```
+
+Проверка: `getWebhookInfo` → `url` = `https://fin-brdg.web.app/api/telegram/webhook`, `last_error_message` пустой.
+
+| Что | Зачем |
+|-----|--------|
+| **Edit Commands** в BotFather | только подсказки в меню «/» — **не** запускает код |
+| **Webhook** | Telegram шлёт `/start` на сервер → ответ в чате |
+| **Menu Button + Web App URL** | открывает Mini App (это не `/start`) |
+
+Приглашение в семью: ссылка `https://t.me/fin_brdg_bot?start=inv_t_…` — Telegram сам шлёт `/start inv_t_…` боту.
+
+Аватар — узнаваемый в круге, без мелкого текста.
 
 ---
 
@@ -107,6 +122,20 @@ invite - Подключить второго в семью
 
 Написать команде: [контакт].
 ```
+
+### `/start` с приглашением (`?start=inv_…`)
+
+После перехода по ссылке из раздела «Семья» (в параметре может быть `_i<telegramId>` отправителя):
+
+```text
+{Имя отправителя} приглашает тебя в семью 🎒
+
+Жми «Войти в семью» — или кнопку Fin Bridge внизу.
+```
+
+Если имя не удалось определить: «Тебя приглашают в семью 🎒» — та же вторая строка.
+
+Без TTL и слов вроде «связка», «сохранено», «параметр» — см. [tone-of-voice.md](design-docs/tone-of-voice.md).
 
 ### `/invite` (позже)
 
