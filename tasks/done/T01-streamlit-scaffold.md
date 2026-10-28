@@ -1,7 +1,7 @@
 ---
 id: T01
 title: Каркас Streamlit и переключение ролей
-status: in-progress
+status: done
 owns: [A, B, C]  # B, C: только заглушки app/pages/teen_home.py, parent_home.py
 depends-on: []
 claimed-by: sw3artog0d
