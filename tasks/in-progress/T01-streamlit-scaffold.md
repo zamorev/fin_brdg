@@ -1,9 +1,12 @@
 ---
 id: T01
 title: Каркас Streamlit и переключение ролей
-status: backlog
-owns: [A]
+status: in-progress
+owns: [A, B, C]  # B, C: только заглушки app/pages/teen_home.py, parent_home.py
 depends-on: []
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T01
+started: 2026-10-28
 ---
 
 # T01 — Каркас Streamlit и переключение ролей
