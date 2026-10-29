@@ -22,7 +22,9 @@
 | **J1. Экраны** | `v2/web/src/screens/**`, `v2/web/src/components/**`, `v2/web/src/styles/**` | вёрстка и поведение экранов |
 | **J2. Каркас фронта** | `v2/web/src/App.tsx`, `main.tsx`, `api/**`, `session/**`, `twa/**`, `telegram/**`, `v2/web/*.json`, `vite.config.ts` | роутинг, API-клиент, Telegram SDK, сборка |
 | **K1. API и бот** | `functions/src/app.ts`, `index.ts`, `telegram.ts`, `botWebhook.ts`, `inviteParam.ts` | маршруты, авторизация, webhook |
-| **K2. Данные** | `functions/src/store.ts`, `pendingInvite.ts`, `profilePhoto.ts`, `firestore.*`, `docs/generated/firestore-schema.md` | Firestore, сценарии |
+| **K2. Данные** | `functions/src/store.ts`, `pendingInvite.ts`, `profilePhoto.ts`, `firestore.*`, `docs/generated/firestore-schema.md` | Firestore, семья, invite |
+| **K2b. Сценарные квесты** | `functions/src/scenario*.ts`, `functions/src/scenarios/**`, `scenarioRuns` в store/API | движок, runs, cinema_chain_v1 |
+| **J1b. UI сценария** | `v2/web/src/screens/ScenarioStep.tsx`, карточки сценария на `TeenHome` | шаг квеста в TWA |
 | **K3. Деплой** | `firebase.json`, `.firebaserc`, `scripts/deploy-*.sh`, `scripts/set-telegram-webhook.sh`, `functions/package*.json` | конфиг и выкладка |
 | **L. Домен** | `functions/src/domain.ts`, `v2/web/src/domain/**`, `docs/design-docs/domain-test-cases.md` | числа и правила бюджета (обе копии — одной задачей) |
 
@@ -44,4 +46,4 @@
 
 ## Параллельные пары
 
-**Активно:** T17 — сценарные квесты ([PR #1](https://github.com/zamorev/fin_brdg/pull/1)); invite/pending — только по отдельной задаче.
+T17 в `main` (2026-10-29). Новые задачи — **разные подзоны** (J1 vs K1 vs K2b vs harness H); общие файлы — минимальные правки (см. правила выше).

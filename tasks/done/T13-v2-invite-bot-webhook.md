@@ -45,7 +45,7 @@ started: 2026-10-28
 ## Notes
 
 - Webhook: `https://fin-brdg.web.app/api/telegram/webhook`.
-- **Продолжение по квестам:** T17 — [PR #1](https://github.com/zamorev/fin_brdg/pull/1) (rebase на `main` после этого коммита).
+- **Продолжение по квестам:** [T17](../done/T17-scenario-quest-engine.md) — сценарный движок в `main`.
 
 ## Итог
 

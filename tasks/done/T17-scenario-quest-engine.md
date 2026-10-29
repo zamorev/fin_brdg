@@ -1,11 +1,11 @@
 ---
 id: T17
 title: v2 — движок сценарных квестов
-status: in-progress
+status: done
 owns: [J, K, H]
 depends-on: [T11, T12, T13]
 claimed-by: pavel
-branch: agent/pavel/T17-scenario-quest-engine
+branch: main
 started: 2026-10-29
 ---
 
@@ -45,5 +45,8 @@ started: 2026-10-29
 ## Notes
 
 - Линейный квест 2 (`UnplannedPurchase`) пока параллельно; миграция — фаза E.
-- T13 закрыта (2026-10-29); PR #1 можно мержить после merge `agent/pavel/T13-close` в `main`.
-- `./scripts/verify.sh`; functions: `cd functions && npm test`.
+- Merge в `main` 2026-10-29; prod: `./scripts/deploy-v2.sh`.
+
+## Итог
+
+Движок сценариев и `cinema_chain_v1` в `main`; параллельные задачи — подзоны сценариев (см. OWNERSHIP).
