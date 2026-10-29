@@ -107,8 +107,9 @@ export function TwaProvider({ children }: { children: ReactNode }) {
       );
     }
     document.documentElement.style.setProperty("--fb-content-top", `${topInset}px`);
-    document.documentElement.classList.add("twa-ready");
-  }, [tg]);
+    // telegram-web-app.js создаёт WebApp и в обычном браузере; без initData — не TWA, нужна fallback-кнопка.
+    if (isTwa) document.documentElement.classList.add("twa-ready");
+  }, [tg, isTwa]);
 
   const [mainConfig, setMainConfigState] = useState<MainButtonConfig>({
     text: "",
