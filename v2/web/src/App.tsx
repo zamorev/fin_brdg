@@ -18,6 +18,7 @@ import { RequestStatusTeen } from "./screens/RequestStatusTeen";
 import { ParentRequest } from "./screens/ParentRequest";
 import { FamilyScreen } from "./screens/FamilyScreen";
 import { FamilyWeeklyBudgetSection } from "./components/FamilyWeeklyBudgetSection";
+import { useCopy } from "./copy/CopyProvider";
 import { APP_BUILD_ID } from "./buildInfo";
 
 type Route =
@@ -39,6 +40,7 @@ type Route =
 
 export function App() {
   const { user, onboarding, loading, error, setUser, refresh } = useSession();
+  const { t } = useCopy();
   const [route, setRoute] = useState<Route>({ name: "home" });
   const familyEnteredAt = useRef(0);
 
@@ -69,13 +71,13 @@ export function App() {
   }, [user]);
 
   if (loading) {
-    return <div className="loading">Загружаем…</div>;
+    return <div className="loading">{t("ui.loading")}</div>;
   }
 
   if (error) {
     return (
       <div className="app-shell">
-        <h1 className="screen-title">Не получилось</h1>
+        <h1 className="screen-title">{t("ui.error.title")}</h1>
         <p className="screen-sub">{error}</p>
         {import.meta.env.DEV ? <LocalDevHint /> : null}
       </div>
@@ -94,8 +96,8 @@ export function App() {
   if (!user) {
     return (
       <div className="app-shell">
-        <h1 className="screen-title">Открой через бота</h1>
-        <p className="screen-sub">@fin_brdg_bot → кнопка «Начать»</p>
+        <h1 className="screen-title">{t("ui.openViaBot.title")}</h1>
+        <p className="screen-sub">{t("ui.openViaBot.sub")}</p>
       </div>
     );
   }
@@ -119,11 +121,8 @@ export function App() {
     const pending = user.activeRequest?.status === "pending" ? user.activeRequest : null;
     return (
       <div className="app-shell">
-        <h1 className="screen-title">Fin Bridge</h1>
-        <p className="screen-sub">
-          Когда подросток предложит новое правило — увидишь его здесь, со своего
-          Telegram.
-        </p>
+        <h1 className="screen-title">{t("ui.parent.home.title")}</h1>
+        <p className="screen-sub">{t("ui.parent.home.sub")}</p>
         <div className="card task-list task-list--tap">
           {pending ? (
             <button

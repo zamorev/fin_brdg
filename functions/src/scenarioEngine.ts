@@ -1,6 +1,5 @@
 import type { Allocation, SpendEffect } from "./domain";
 import { applyScenarioEffects } from "./domain";
-import { loadScenario } from "./scenarios/registry";
 import type { ScenarioDefinition, ScenarioNode, ScenarioOption } from "./scenarios/types";
 
 export type ScenarioRunState = {
@@ -38,8 +37,7 @@ export function nodeToStepView(node: ScenarioNode): ScenarioStepView {
   };
 }
 
-export function startRunState(scenarioId: string, nowMs: number): ScenarioRunState {
-  const scenario = loadScenario(scenarioId);
+export function startRunState(scenario: ScenarioDefinition, nowMs: number): ScenarioRunState {
   return {
     scenarioId: scenario.id,
     scenarioVersion: scenario.version,
@@ -69,6 +67,7 @@ export function submitAnswer(
   optionId: string,
   allocation: Allocation,
   nowMs: number,
+  scenario: ScenarioDefinition,
 ): SubmitAnswerResult {
   if (run.status !== "active") {
     throw new Error("Сценарий уже завершён");
@@ -82,7 +81,6 @@ export function submitAnswer(
     throw new Error("На этот шаг уже ответили");
   }
 
-  const scenario = loadScenario(run.scenarioId);
   const node = getNode(scenario, run.currentNodeId);
   const option = findOption(node, optionId);
   const effects = option.effects ?? [];
@@ -142,12 +140,12 @@ export function materializeDueStep(run: ScenarioRunState, nowMs: number): Scenar
 export function activeStepForRun(
   run: ScenarioRunState,
   nowMs: number,
+  scenario: ScenarioDefinition,
 ): { run: ScenarioRunState; step: ScenarioStepView | null } {
   const materialized = materializeDueStep(run, nowMs);
   if (materialized.status !== "active" || materialized.stepStatus !== "ready") {
     return { run: materialized, step: null };
   }
-  const scenario = loadScenario(materialized.scenarioId);
   const node = getNode(scenario, materialized.currentNodeId);
   return { run: materialized, step: nodeToStepView(node) };
 }

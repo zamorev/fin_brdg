@@ -22,7 +22,7 @@ import {
   buildScenarioSessionFields,
   startScenarioRun,
 } from "./scenarioRuns";
-import { loadScenario } from "./scenarios/registry";
+import { resolveScenario } from "./cms/scenarios";
 
 const db = () => getFirestore();
 
@@ -668,7 +668,7 @@ export async function createRequest(
 
 export async function startScenario(user: TelegramUser, scenarioId: string) {
   const profile = await requireUser(user, "teen");
-  loadScenario(scenarioId);
+  await resolveScenario(scenarioId);
   const { runId } = await startScenarioRun(user, profile.familyId, scenarioId);
   return { runId, user: await sessionForUser(user, profile) };
 }

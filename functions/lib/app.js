@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setBotTokenProvider = setBotTokenProvider;
 exports.createApp = createApp;
 const express_1 = __importDefault(require("express"));
+const adminRouter_1 = require("./adminRouter");
 const botWebhook_1 = require("./botWebhook");
 const telegram_1 = require("./telegram");
 const store_1 = require("./store");
@@ -20,6 +21,7 @@ function createApp() {
         req.botToken = resolveBotToken();
         next();
     });
+    app.use((0, adminRouter_1.createAdminRouter)());
     app.get("/api/health", (_req, res) => {
         res.json({ ok: true });
     });

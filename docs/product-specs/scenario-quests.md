@@ -93,7 +93,7 @@ Mini App **не** шлёт OS-push при закрытом приложении 
 
 ## Ограничения MVP
 
-- Контент только в git, без CMS в Firestore.
-- Нет Cloud Tasks (cron 5 мин для `pending → ready`).
+- По умолчанию контент в git; **тестовая CMS (T25)** — переопределения в Firestore `cmsMessages` / `cmsScenarios`, админка `/admin/`.
+- Scheduler `scenarioStepScheduler` (every 5 min) — `pending → ready` + сообщение бота.
 - Нет авто-лимитов по ответам.
 - Несколько подростков — отдельные run, общий `allocation` семьи (зафиксировано).

@@ -1,6 +1,7 @@
 import { botStartDeepLink, normalizeInviteParam, parseInviterTelegramId } from "./inviteParam";
 import { savePendingInvite } from "./pendingInvite";
 import { resolveInviterDisplayName } from "./store";
+import { getMessage } from "./cms/messages";
 
 const WEBAPP_URL = process.env.WEBAPP_URL ?? "https://fin-brdg.web.app";
 
@@ -22,9 +23,10 @@ function extractStartPayload(text: string): string | undefined {
 import { telegramApi } from "./telegramBotApi";
 
 async function sendWelcome(chatId: number, botToken: string): Promise<void> {
+  const text = await getMessage("bot.welcome");
   await telegramApi(botToken, "sendMessage", {
     chat_id: chatId,
-    text: "Привет 👋\n\nКвесты про бюджет — в Mini App. Жми кнопку «Fin Bridge» внизу или приходи по ссылке от семьи.",
+    text,
   });
 }
 
@@ -40,11 +42,10 @@ export async function handleTelegramUpdate(update: TelegramUpdate, botToken: str
   const isStart = startPayload !== undefined || /^\/start(?:@\w+)?/i.test(text);
 
   if (/^\/help(?:@\w+)?/i.test(text)) {
+    const helpText = await getMessage("bot.help");
     await telegramApi(botToken, "sendMessage", {
       chat_id: chatId,
-      text:
-        "Подключаетесь вдвоём, каждый со своего аккаунта. Квесты общие.\n\n" +
-        "В семью — по ссылке от близких из Fin Bridge. Потом жми кнопку Fin Bridge внизу.",
+      text: helpText,
     });
     return;
   }
@@ -66,16 +67,18 @@ export async function handleTelegramUpdate(update: TelegramUpdate, botToken: str
     const inviterId = parseInviterTelegramId(startPayload);
     const inviterName = await resolveInviterDisplayName(inviteParam, inviterId);
     const headline = inviterName
-      ? `${inviterName} приглашает тебя в семью 🎒`
-      : "Тебя приглашают в семью 🎒";
+      ? await getMessage("bot.invite.headline_named", { name: inviterName })
+      : await getMessage("bot.invite.headline_generic");
+    const body = await getMessage("bot.invite.body");
+    const button = await getMessage("bot.invite.button");
     await telegramApi(botToken, "sendMessage", {
       chat_id: chatId,
-      text: `${headline}\n\nЖми «Войти в семью» — или кнопку Fin Bridge внизу.`,
+      text: `${headline}\n\n${body}`,
       reply_markup: {
         inline_keyboard: [
           [
             {
-              text: "Войти в семью",
+              text: button,
               web_app: { url: WEBAPP_URL },
             },
           ],
@@ -85,9 +88,10 @@ export async function handleTelegramUpdate(update: TelegramUpdate, botToken: str
     return;
   }
 
+  const unknown = await getMessage("bot.invite.unknown");
   await telegramApi(botToken, "sendMessage", {
     chat_id: chatId,
-    text: "Не узнал приглашение. Попроси отправить ссылку ещё раз из раздела «Семья» в Fin Bridge.",
+    text: unknown,
   });
 }
 

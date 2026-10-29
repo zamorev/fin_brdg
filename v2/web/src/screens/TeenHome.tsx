@@ -5,6 +5,7 @@ import { startScenario } from "../api/client";
 import { FamilyWeeklyBudgetSection } from "../components/FamilyWeeklyBudgetSection";
 import { MainAction } from "../components/MainAction";
 import { useState } from "react";
+import { useCopy } from "../copy/CopyProvider";
 
 const CINEMA_SCENARIO_ID = "cinema_chain_v1";
 
@@ -27,6 +28,7 @@ export function TeenHome({
   onOpenScenarioStep,
   onScenarioStarted,
 }: Props) {
+  const { t } = useCopy();
   const req = user.activeRequest;
   const entertainment = user.family.allocation.entertainment;
   const myWeeklyBudget = selfWeeklyBudget(user);
@@ -47,9 +49,9 @@ export function TeenHome({
   return (
     <div className="app-shell">
       <div className="row-between" style={{ marginBottom: 16 }}>
-        <strong style={{ fontSize: "1.125rem" }}>Level Up</strong>
+        <strong style={{ fontSize: "1.125rem" }}>{t("ui.teen.levelLabel")}</strong>
         <span style={{ color: "var(--fb-hint)", fontSize: "0.875rem" }}>
-          • {user.displayName}, подросток
+          • {user.displayName}, {t("ui.teen.roleSuffix")}
         </span>
       </div>
 
@@ -93,7 +95,7 @@ export function TeenHome({
           }}
         >
           <div style={{ color: "var(--fb-hint)", fontSize: "0.875rem" }}>
-            бюджет на эту неделю
+            {t("ui.teen.weeklyBudgetLabel")}
           </div>
           <div style={{ fontSize: "2rem", fontWeight: 700, marginTop: 4 }}>
             {formatRub(myWeeklyBudget)}
@@ -101,19 +103,19 @@ export function TeenHome({
         </div>
       </div>
 
-      <h2 style={{ fontSize: "1.125rem", margin: "20px 0 8px" }}>Задания</h2>
+      <h2 style={{ fontSize: "1.125rem", margin: "20px 0 8px" }}>{t("ui.teen.tasksHeading")}</h2>
 
       <div className="card task-list task-list--tap">
         <button type="button" className="task-row" onClick={onStartQuest}>
           <span className="task-icon">💼</span>
           <span>
-            <div className="task-title">Неделя на 1 500 ₽</div>
-            <div className="task-sub">
-              Разложи бюджет по категориям, 5 минут
-            </div>
+            <div className="task-title">{t("ui.teen.questWeek.title")}</div>
+            <div className="task-sub">{t("ui.teen.questWeek.sub")}</div>
           </span>
           <span className="inline-action">
-            {user.family.questWeekBudgetCompleted ? "Снова" : "Начать"}
+            {user.family.questWeekBudgetCompleted
+              ? t("ui.teen.questWeek.again")
+              : t("ui.teen.questWeek.start")}
           </span>
         </button>
 
@@ -149,10 +151,12 @@ export function TeenHome({
           >
             <span className="task-icon">🎬</span>
             <span>
-              <div className="task-title">Ой, кино</div>
+              <div className="task-title">{t("ui.teen.cinema.title")}</div>
               <div className="task-sub">Сюрпризная трата — цепочка решений</div>
             </span>
-            <span className="inline-action">{startingScenario ? "…" : "Начать"}</span>
+            <span className="inline-action">
+              {startingScenario ? "…" : t("ui.teen.questWeek.start")}
+            </span>
           </button>
         ) : null}
 
@@ -178,7 +182,7 @@ export function TeenHome({
             👨‍👩‍👧
           </span>
           <span>
-            <div className="task-title">Семья</div>
+            <div className="task-title">{t("ui.teen.family.title")}</div>
             <div className="task-sub">
               {user.family.memberCounts.parents} родит.
               {user.family.memberCounts.teens > 1
@@ -194,7 +198,7 @@ export function TeenHome({
             ✓
           </span>
           <span>
-            <div className="task-title">Мои договорённости</div>
+            <div className="task-title">{t("ui.teen.agreements.title")}</div>
             <div className="task-sub">
               Развлечения {entertainment} ₽ · резерв {user.family.allocation.reserve} ₽
             </div>
@@ -212,6 +216,7 @@ export function TeenHomeMainButton({
   visible: boolean;
   onStart: () => void;
 }) {
+  const { t } = useCopy();
   if (!visible) return null;
-  return <MainAction text="Начать квест" visible={false} onClick={onStart} />;
+  return <MainAction text={t("ui.teen.mainButton")} visible={false} onClick={onStart} />;
 }

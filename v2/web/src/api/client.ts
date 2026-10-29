@@ -132,6 +132,13 @@ export function decideRequest(
   });
 }
 
+export async function fetchContentStrings(): Promise<Record<string, string>> {
+  const res = await fetch(`${API_BASE}/content/strings`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) return {};
+  return (body as { strings: Record<string, string> }).strings ?? {};
+}
+
 export function startScenario(scenarioId: string) {
   return request<{ runId: string; user: SessionUser }>(
     `/scenarios/${encodeURIComponent(scenarioId)}/start`,

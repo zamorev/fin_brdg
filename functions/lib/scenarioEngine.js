@@ -7,7 +7,6 @@ exports.submitAnswer = submitAnswer;
 exports.materializeDueStep = materializeDueStep;
 exports.activeStepForRun = activeStepForRun;
 const domain_1 = require("./domain");
-const registry_1 = require("./scenarios/registry");
 function getNode(scenario, nodeId) {
     const node = scenario.nodes[nodeId];
     if (!node)
@@ -21,8 +20,7 @@ function nodeToStepView(node) {
         options: node.options.map((o) => ({ id: o.id, label: o.label })),
     };
 }
-function startRunState(scenarioId, nowMs) {
-    const scenario = (0, registry_1.loadScenario)(scenarioId);
+function startRunState(scenario, nowMs) {
     return {
         scenarioId: scenario.id,
         scenarioVersion: scenario.version,
@@ -39,7 +37,7 @@ function findOption(node, optionId) {
         throw new Error("Такого варианта нет");
     return option;
 }
-function submitAnswer(run, optionId, allocation, nowMs) {
+function submitAnswer(run, optionId, allocation, nowMs, scenario) {
     if (run.status !== "active") {
         throw new Error("Сценарий уже завершён");
     }
@@ -50,7 +48,6 @@ function submitAnswer(run, optionId, allocation, nowMs) {
     if (already) {
         throw new Error("На этот шаг уже ответили");
     }
-    const scenario = (0, registry_1.loadScenario)(run.scenarioId);
     const node = getNode(scenario, run.currentNodeId);
     const option = findOption(node, optionId);
     const effects = option.effects ?? [];
@@ -101,12 +98,11 @@ function materializeDueStep(run, nowMs) {
     }
     return { ...run, stepStatus: "ready" };
 }
-function activeStepForRun(run, nowMs) {
+function activeStepForRun(run, nowMs, scenario) {
     const materialized = materializeDueStep(run, nowMs);
     if (materialized.status !== "active" || materialized.stepStatus !== "ready") {
         return { run: materialized, step: null };
     }
-    const scenario = (0, registry_1.loadScenario)(materialized.scenarioId);
     const node = getNode(scenario, materialized.currentNodeId);
     return { run: materialized, step: nodeToStepView(node) };
 }

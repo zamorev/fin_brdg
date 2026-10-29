@@ -15,6 +15,12 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        admin: "admin.html",
+      },
+    },
   },
   server: {
     port: 5173,
@@ -22,7 +28,7 @@ export default defineConfig({
       "/api": {
         target: "http://127.0.0.1:5001",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, EMULATOR_FUNCTIONS_BASE),
+        rewrite: (p) => p.replace(/^\/api/, EMULATOR_FUNCTIONS_BASE),
       },
     },
   },

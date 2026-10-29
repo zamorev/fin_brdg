@@ -68,3 +68,19 @@
 ## `members/{telegramId}` (устаревшая)
 
 Только чтение для совместимости со старыми аккаунтами (`resolveUser`): `role`, `familyId`, `displayName`. Новые записи не создаются.
+
+## `cmsMessages/{key}` (T25, тестовая CMS)
+
+| Поле | Тип | Смысл |
+|------|-----|-------|
+| `text` | string | Текст по ключу из `functions/src/cms/catalog.ts` |
+| `updatedAt` | Timestamp | |
+| `updatedBy` | string | логин админки |
+
+## `cmsScenarios/{scenarioId}` (T25)
+
+Переопределение сценарного квеста (граф узлов). Поля совпадают с `ScenarioDefinition` в коде + `updatedAt`, `updatedBy`. Если документа нет — fallback на git (`functions/src/scenarios/`).
+
+## `scenarioRuns/{id}`
+
+См. [product-specs/scenario-quests.md](../product-specs/scenario-quests.md).

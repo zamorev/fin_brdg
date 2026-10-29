@@ -1,4 +1,5 @@
 import express from "express";
+import { createAdminRouter } from "./adminRouter";
 import { handleTelegramUpdate } from "./botWebhook";
 import { authMiddleware } from "./telegram";
 import {
@@ -31,6 +32,8 @@ export function createApp() {
     req.botToken = resolveBotToken();
     next();
   });
+
+  app.use(createAdminRouter());
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });

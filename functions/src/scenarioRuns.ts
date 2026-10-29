@@ -1,7 +1,7 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { TelegramUser } from "./telegram";
 import type { Allocation, SpendEffect } from "./domain";
-import { loadScenario } from "./scenarios/registry";
+import { resolveScenario } from "./cms/scenarios";
 import {
   activeStepForRun,
   materializeDueStep,
@@ -126,7 +126,7 @@ export async function buildScenarioSessionFields(
       });
   }
 
-  const scenario = loadScenario(state.scenarioId);
+  const scenario = await resolveScenario(state.scenarioId);
 
   if (state.stepStatus === "pending") {
     return {
@@ -140,7 +140,7 @@ export async function buildScenarioSessionFields(
     };
   }
 
-  const { step } = activeStepForRun(state, nowMs);
+  const { step } = activeStepForRun(state, nowMs, scenario);
   if (!step) {
     return { activeScenarioStep: null, pendingScenarioStep: null };
   }
@@ -163,14 +163,14 @@ export async function startScenarioRun(
   familyId: string,
   scenarioId: string,
 ): Promise<{ runId: string }> {
-  loadScenario(scenarioId);
   const existing = await findActiveRun(user.id, scenarioId);
   if (existing) {
     return { runId: existing.id };
   }
 
   const nowMs = Date.now();
-  const state = startRunState(scenarioId, nowMs);
+  const scenario = await resolveScenario(scenarioId);
+  const state = startRunState(scenario, nowMs);
   const ref = db().collection("scenarioRuns").doc();
   const doc: ScenarioRunDoc = {
     scenarioId: state.scenarioId,
@@ -215,7 +215,8 @@ export async function answerScenarioRun(
   state = materializeDueStep(state, nowMs);
 
   const allocationBefore = { ...allocation };
-  const result = submitAnswer(state, optionId, allocation, nowMs);
+  const scenario = await resolveScenario(state.scenarioId);
+  const result = submitAnswer(state, optionId, allocation, nowMs, scenario);
 
   const historyEntry: ScenarioHistoryEntry = {
     nodeId: state.currentNodeId,
@@ -271,7 +272,7 @@ export async function processDueScenarioSteps(botToken: string): Promise<number>
     });
 
     if (botToken) {
-      const scenario = loadScenario(doc.scenarioId);
+      const scenario = await resolveScenario(doc.scenarioId);
       const node = scenario.nodes[doc.currentNodeId];
       const snippet = node?.prompt.split("\n")[0] ?? scenario.title;
       await notifyScenarioStepReady(botToken, doc.teenTelegramId, docSnap.id, snippet);

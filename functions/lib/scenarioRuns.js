@@ -8,7 +8,7 @@ exports.applyScenarioAllocationUpdate = applyScenarioAllocationUpdate;
 exports.processDueScenarioSteps = processDueScenarioSteps;
 exports.notifyReadyStepIfNeeded = notifyReadyStepIfNeeded;
 const firestore_1 = require("firebase-admin/firestore");
-const registry_1 = require("./scenarios/registry");
+const scenarios_1 = require("./cms/scenarios");
 const scenarioEngine_1 = require("./scenarioEngine");
 const scenarioNotify_1 = require("./scenarioNotify");
 const db = () => (0, firestore_1.getFirestore)();
@@ -75,7 +75,7 @@ async function buildScenarioSessionFields(teenTelegramId, userType) {
             readyAt: firestore_1.Timestamp.fromMillis(state.readyAtMs),
         });
     }
-    const scenario = (0, registry_1.loadScenario)(state.scenarioId);
+    const scenario = await (0, scenarios_1.resolveScenario)(state.scenarioId);
     if (state.stepStatus === "pending") {
         return {
             activeScenarioStep: null,
@@ -87,7 +87,7 @@ async function buildScenarioSessionFields(teenTelegramId, userType) {
             },
         };
     }
-    const { step } = (0, scenarioEngine_1.activeStepForRun)(state, nowMs);
+    const { step } = (0, scenarioEngine_1.activeStepForRun)(state, nowMs, scenario);
     if (!step) {
         return { activeScenarioStep: null, pendingScenarioStep: null };
     }
@@ -104,13 +104,13 @@ async function buildScenarioSessionFields(teenTelegramId, userType) {
     };
 }
 async function startScenarioRun(user, familyId, scenarioId) {
-    (0, registry_1.loadScenario)(scenarioId);
     const existing = await findActiveRun(user.id, scenarioId);
     if (existing) {
         return { runId: existing.id };
     }
     const nowMs = Date.now();
-    const state = (0, scenarioEngine_1.startRunState)(scenarioId, nowMs);
+    const scenario = await (0, scenarios_1.resolveScenario)(scenarioId);
+    const state = (0, scenarioEngine_1.startRunState)(scenario, nowMs);
     const ref = db().collection("scenarioRuns").doc();
     const doc = {
         scenarioId: state.scenarioId,
@@ -142,7 +142,8 @@ async function answerScenarioRun(user, familyId, runId, optionId, allocation) {
     let state = runDocToState(doc);
     state = (0, scenarioEngine_1.materializeDueStep)(state, nowMs);
     const allocationBefore = { ...allocation };
-    const result = (0, scenarioEngine_1.submitAnswer)(state, optionId, allocation, nowMs);
+    const scenario = await (0, scenarios_1.resolveScenario)(state.scenarioId);
+    const result = (0, scenarioEngine_1.submitAnswer)(state, optionId, allocation, nowMs, scenario);
     const historyEntry = {
         nodeId: state.currentNodeId,
         optionId,
@@ -186,7 +187,7 @@ async function processDueScenarioSteps(botToken) {
             notifiedAt: firestore_1.FieldValue.delete(),
         });
         if (botToken) {
-            const scenario = (0, registry_1.loadScenario)(doc.scenarioId);
+            const scenario = await (0, scenarios_1.resolveScenario)(doc.scenarioId);
             const node = scenario.nodes[doc.currentNodeId];
             const snippet = node?.prompt.split("\n")[0] ?? scenario.title;
             await (0, scenarioNotify_1.notifyScenarioStepReady)(botToken, doc.teenTelegramId, docSnap.id, snippet);

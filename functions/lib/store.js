@@ -27,7 +27,7 @@ const telegram_1 = require("./telegram");
 const profilePhoto_1 = require("./profilePhoto");
 const pendingInvite_1 = require("./pendingInvite");
 const scenarioRuns_1 = require("./scenarioRuns");
-const registry_1 = require("./scenarios/registry");
+const scenarios_1 = require("./cms/scenarios");
 const db = () => (0, firestore_1.getFirestore)();
 function newInviteCode() {
     return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -495,7 +495,7 @@ async function createRequest(user, proposedAmount, explanation) {
 }
 async function startScenario(user, scenarioId) {
     const profile = await requireUser(user, "teen");
-    (0, registry_1.loadScenario)(scenarioId);
+    await (0, scenarios_1.resolveScenario)(scenarioId);
     const { runId } = await (0, scenarioRuns_1.startScenarioRun)(user, profile.familyId, scenarioId);
     return { runId, user: await sessionForUser(user, profile) };
 }
