@@ -1,7 +1,7 @@
 ---
 id: T13
 title: v2 — invite через чат бота (webhook + pendingInvites)
-status: in-progress
+status: done
 owns:
   - v2/web/**
   - functions/**
@@ -16,7 +16,7 @@ started: 2026-10-28
 
 ## Description
 
-Продолжение [T12](../done/T12-v2-onboarding-users-avatars.md).  
+Продолжение [T12](T12-v2-onboarding-users-avatars.md).  
 Проблема: ссылка открывает **чат бота**, пользователь жмёт **Menu / «Fin Bridge»** — Mini App без `start_param`, в семью не попадает.
 
 Решение: deep link `?start=inv_t_|p_<token>` → **Telegram webhook** → `pendingInvites/{telegramId}` → **`GET /api/me`** делает join.
@@ -29,8 +29,8 @@ started: 2026-10-28
 - [x] `buildMe` — `consumePendingInvite` если нет `start_param`
 - [x] Share-ссылка: `t.me/fin_brdg_bot?start=inv_…` (`v2/web/src/telegram/bot.ts`)
 - [x] `./scripts/set-telegram-webhook.sh` → webhook на prod
-- [ ] Smoke: новая ссылка → сообщение бота → Menu Fin Bridge → `familyId` в `users/{id}` (проверить на втором аккаунте)
-- [ ] Коммиты `T13: …` в git, `./scripts/verify.sh`
+- [x] Smoke: новая ссылка → сообщение бота → Menu Fin Bridge → `familyId` в `users/{id}` (второй аккаунт)
+- [x] Код в `main`, `./scripts/verify.sh` OK (2026-10-29)
 
 ## Ключевые файлы
 
@@ -44,10 +44,9 @@ started: 2026-10-28
 
 ## Notes
 
-- **Не параллелить** с другой задачей в `functions/**` / invite без согласования.
-- Webhook уже должен быть: `https://fin-brdg.web.app/api/telegram/webhook` (см. `getWebhookInfo`).
-- После merge: перенести файл в `tasks/done/`, обновить таблицу задач в `docs/V2.md`.
+- Webhook: `https://fin-brdg.web.app/api/telegram/webhook`.
+- **Продолжение по квестам:** T17 — [PR #1](https://github.com/zamorev/fin_brdg/pull/1) (rebase на `main` после этого коммита).
 
-## WIP (текущее состояние)
+## Итог
 
-Код задеплоен; smoke и git — в процессе. Не начинать заново webhook/pending — только доработки и фиксы в рамках T13.
+Invite через чат + Menu Fin Bridge работает на prod; зона `functions/**` / `v2/web/**` для T13 закрыта.
