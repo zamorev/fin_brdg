@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# Локальный v2: Functions emulator + Vite + браузер на http://localhost:5173
+# Локальный v2: эмуляторы Functions + Firestore (--project demo-fin-brdg) + Vite + браузер.
+# Prod не задевается: для demo-* проекта Firebase не ходит в настоящие сервисы.
+# Вход за родителя: VITE_DEV_TG_USER="200002:Dev Parent" npm run dev:v2  (см. docs/LOCAL_DEV.md)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+PROJECT="demo-fin-brdg"
 DEV_URL="http://localhost:5173"
-HEALTH_URL="http://127.0.0.1:5001/fin-brdg/europe-west1/api/api/health"
+HEALTH_URL="http://127.0.0.1:5001/$PROJECT/europe-west1/api/api/health"
 ENV_FILE="$ROOT/functions/.env"
 LOG_DIR="$ROOT/.local/dev-v2"
 EMU_LOG="$LOG_DIR/emulator.log"
@@ -58,12 +61,16 @@ fi
 echo "== build functions =="
 npm --prefix functions run build
 
-EMU_ONLY="functions"
-if java -version &>/dev/null; then
-  EMU_ONLY="functions,firestore"
-else
-  echo "Java не найден — эмулятор только functions (Firestore может идти в прод)."
+# Java нужна эмулятору Firestore; без него запуск запрещён (иначе данные уйдут мимо эмулятора).
+if [[ -d /opt/homebrew/opt/openjdk@21/bin ]]; then
+  export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
 fi
+if ! java -version &>/dev/null; then
+  echo "Java не найдена — эмулятор Firestore не запустить. Останавливаюсь."
+  echo "Установи: brew install openjdk@21  (см. docs/LOCAL_DEV.md)"
+  exit 1
+fi
+EMU_ONLY="functions,firestore"
 
 wait_for_url() {
   local url="$1"
@@ -88,10 +95,15 @@ port_listen() {
 mkdir -p "$LOG_DIR"
 
 if port_listen 5001; then
-  echo "== Functions emulator уже слушает :5001 =="
+  if ! curl -sf "$HEALTH_URL" &>/dev/null; then
+    echo "Порт :5001 занят, но API $PROJECT не отвечает ($HEALTH_URL)."
+    echo "Возможно, эмулятор запущен с другим проектом — останови его и запусти заново."
+    exit 1
+  fi
+  echo "== эмулятор $PROJECT уже слушает :5001 =="
 else
-  echo "== firebase emulators:start --only $EMU_ONLY =="
-  "$FIREBASE" emulators:start --only "$EMU_ONLY" >>"$EMU_LOG" 2>&1 &
+  echo "== firebase emulators:start --only $EMU_ONLY --project $PROJECT =="
+  "$FIREBASE" emulators:start --only "$EMU_ONLY" --project "$PROJECT" >>"$EMU_LOG" 2>&1 &
   EMU_PID=$!
   STARTED_EMULATOR=1
   wait_for_url "$HEALTH_URL" "API (эмулятор)" 90 || {
@@ -124,6 +136,8 @@ fi
 
 echo ""
 echo "Работает. Логи: $LOG_DIR/"
+echo "Вход: ${VITE_DEV_TG_USER:-100001 / Dev Teen (по умолчанию)}"
+echo "Демо-семья: node scripts/seed-demo-family.mjs  ·  Emulator UI: http://localhost:4000"
 echo "Остановка: Ctrl+C в этом окне (эмулятор, если мы его подняли, тоже остановится)."
 echo ""
 

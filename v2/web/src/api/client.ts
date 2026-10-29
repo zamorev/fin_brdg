@@ -3,9 +3,25 @@ import type { Allocation, CategoryKey } from "../domain/budget";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
+/** Dev без Telegram: VITE_DEV_TG_USER=«200002:Dev Parent» → initData с одним user (эмулятор не проверяет подпись). */
+function devInitData(): string {
+  if (import.meta.env.DEV) {
+    const raw = import.meta.env.VITE_DEV_TG_USER?.trim();
+    if (!raw) return "";
+    const [id, ...name] = raw.split(":");
+    const user = { id: Number(id), first_name: name.join(":").trim() || `Dev ${id}` };
+    if (!Number.isInteger(user.id) || user.id <= 0) return "";
+    return new URLSearchParams({ user: JSON.stringify(user) }).toString();
+  }
+  return "";
+}
+
+function currentInitData(): string {
+  return window.Telegram?.WebApp?.initData || devInitData();
+}
+
 function authHeaders(): HeadersInit {
-  const tg = window.Telegram?.WebApp;
-  const initData = tg?.initData ?? "";
+  const initData = currentInitData();
   return {
     "Content-Type": "application/json",
     Authorization: initData ? `tma ${initData}` : "",
@@ -13,8 +29,7 @@ function authHeaders(): HeadersInit {
 }
 
 function authHeadersRaw(): HeadersInit {
-  const tg = window.Telegram?.WebApp;
-  const initData = tg?.initData ?? "";
+  const initData = currentInitData();
   return initData ? { Authorization: `tma ${initData}` } : {};
 }
 

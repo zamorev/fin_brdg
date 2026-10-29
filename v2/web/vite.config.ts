@@ -3,9 +3,9 @@ import react from "@vitejs/plugin-react";
 
 const buildId = process.env.APP_BUILD_ID ?? "dev";
 
-/** Firebase Functions emulator: `api` in europe-west1, Express mounts at `/api/...`. */
+/** Firebase Functions emulator (`--project demo-fin-brdg`): `api` in europe-west1, Express mounts at `/api/...`. */
 const EMULATOR_FUNCTIONS_BASE =
-  "/fin-brdg/europe-west1/api/api";
+  "/demo-fin-brdg/europe-west1/api/api";
 
 export default defineConfig({
   plugins: [react()],
