@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type PointerEvent } from "react";
 import {
   CATEGORY_LABELS,
+  CATEGORY_MINIMUMS,
   CATEGORY_ORDER,
   formatRub,
   totalAllocation,
   validateAllocation,
   type Allocation,
+  type CategoryKey,
 } from "../domain/budget";
 import { checkWeekBudget } from "../api/client";
 import { MainAction } from "../components/MainAction";
@@ -13,6 +15,36 @@ import { useBackAction } from "../components/useBackAction";
 import { useTwa } from "../twa/TwaProvider";
 import { selfWeeklyBudget } from "../domain/memberBudget";
 import type { SessionUser } from "../domain/types";
+
+const STEP = 50;
+/** Ширина бегунка — как в global.css (.slider-row input[type="range"]). */
+const THUMB_PX = 28;
+
+function categoryMin(key: CategoryKey): number {
+  return CATEGORY_MINIMUMS[key] ?? 0;
+}
+
+/** Бегунок не уходит ниже минимума категории (как clamp_amount в v1). */
+function clampToMin(key: CategoryKey, value: number): number {
+  return Math.max(value, categoryMin(key));
+}
+
+function startValues(allocation: Allocation): Allocation {
+  const a = { ...allocation };
+  for (const key of CATEGORY_ORDER) a[key] = clampToMin(key, a[key] ?? 0);
+  return a;
+}
+
+function statusText(total: number, budget: number): string {
+  if (total < budget) return `Осталось распределить ${formatRub(budget - total)}`;
+  if (total > budget) return `Распределено на ${formatRub(total - budget)} больше`;
+  return "Бюджет распределён полностью";
+}
+
+function totalColor(total: number, budget: number): string {
+  if (total === budget) return "var(--fb-success)";
+  return total < budget ? "var(--fb-warning)" : "var(--fb-danger)";
+}
 
 type Props = {
   user: SessionUser;
@@ -29,25 +61,38 @@ export function QuestBudget({
 }: Props) {
   const { haptic } = useTwa();
   const weeklyBudget = selfWeeklyBudget(user);
-  const [values, setValues] = useState<Allocation>(() => ({
-    ...user.family.allocation,
-  }));
+  const [values, setValues] = useState<Allocation>(() =>
+    startValues(user.family.allocation),
+  );
   const [errors, setErrors] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   useBackAction(onBack);
 
   const total = useMemo(() => totalAllocation(values), [values]);
-  const totalOk = total === weeklyBudget;
+
+  const setValue = useCallback((key: CategoryKey, raw: number) => {
+    const next = clampToMin(key, raw);
+    setValues((prev) => (prev[key] === next ? prev : { ...prev, [key]: next }));
+  }, []);
+
+  /** Значение по координате пальца: тап по дорожке переносит бегунок (iOS WebView так не умеет). */
+  const valueFromPointer = (e: PointerEvent<HTMLDivElement>): number => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const usable = Math.max(rect.width - THUMB_PX, 1);
+    const ratio = Math.min(Math.max((e.clientX - rect.left - THUMB_PX / 2) / usable, 0), 1);
+    return Math.round((ratio * weeklyBudget) / STEP) * STEP;
+  };
 
   const onCheck = useCallback(async () => {
+    if (submittingRef.current) return;
     const local = validateAllocation(values, weeklyBudget);
     if (local.length) {
       setErrors(local.map((e) => e.message));
       haptic("error");
       return;
     }
-    setSubmitting(true);
+    submittingRef.current = true;
     setErrors([]);
     try {
       const res = await checkWeekBudget(values);
@@ -67,7 +112,7 @@ export function QuestBudget({
       setErrors([e instanceof Error ? e.message : "Не получилось — попробуй ещё"]);
       haptic("error");
     } finally {
-      setSubmitting(false);
+      submittingRef.current = false;
     }
   }, [values, weeklyBudget, haptic, onSuccess, onContinueUnplanned, onBack]);
 
@@ -90,28 +135,40 @@ export function QuestBudget({
               <span>{CATEGORY_LABELS[key]}</span>
               <strong>{formatRub(values[key])}</strong>
             </label>
-            <input
-              type="range"
-              min={0}
-              max={weeklyBudget}
-              step={50}
-              value={values[key]}
-              onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  [key]: Number(e.target.value),
-                }))
-              }
-            />
+            <div
+              className="slider-track"
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                setValue(key, valueFromPointer(e));
+              }}
+              onPointerMove={(e) => {
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  setValue(key, valueFromPointer(e));
+                }
+              }}
+            >
+              <input
+                type="range"
+                min={0}
+                max={weeklyBudget}
+                step={STEP}
+                value={values[key]}
+                aria-label={CATEGORY_LABELS[key]}
+                onChange={(e) => setValue(key, Number(e.target.value))}
+              />
+            </div>
           </div>
         ))}
 
         <div className="row-between" style={{ marginTop: 8 }}>
           <span>Распределено</span>
-          <strong style={{ color: totalOk ? "var(--fb-success)" : "var(--fb-warning)" }}>
+          <strong style={{ color: totalColor(total, weeklyBudget) }}>
             {total} из {formatRub(weeklyBudget)}
           </strong>
         </div>
+        <p className="budget-status" aria-live="polite">
+          {statusText(total, weeklyBudget)}
+        </p>
 
         {errors.map((msg) => (
           <div className="error-banner" key={msg}>
@@ -121,7 +178,6 @@ export function QuestBudget({
 
         <MainAction
           text="Проверить мой бюджет"
-          enabled={!submitting}
           onClick={() => void onCheck()}
         />
       </div>
