@@ -24,7 +24,7 @@ npm install && (cd functions && npm install) && (cd v2/web && npm install)
 | [`harness/README.md`](harness/README.md) | Люди: как координироваться |
 | [`tasks/backlog/`](tasks/backlog/) | Очередь задач |
 
-Заявить задачу: `./scripts/claim-task.sh T01 your-nick` (см. `harness/COORDINATION.md`).
+Заявить задачу: `./scripts/claim-task.sh T01 your-nick`, frontmatter, **сразу** commit + push (см. `harness/COORDINATION.md`).
 
 ## Структура
 

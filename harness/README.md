@@ -22,11 +22,13 @@
 
 1. Прочитать `AGENTS.md` и `docs/PRODUCT.md` (описание идеи, DoD).
 2. Выбрать задачу из `tasks/backlog/` (без чужого `claimed-by` в frontmatter).
-3. Заявить задачу: перенести файл в `tasks/in-progress/` и добавить в frontmatter `claimed-by` и `branch`.
-4. Создать ветку `agent/<ник>/<id-задачи>` от актуального `main`.
+3. Заявить задачу: перенести файл в `tasks/in-progress/`, frontmatter (`status`, `claimed-by`, `branch`, `started`).
+4. Создать ветку `agent/<ник>/<id-задачи>` от актуального `main`, **сразу** commit + push claim на remote (до кода) — см. `COORDINATION.md`.
 5. Работать **только** в зоне владения из `OWNERSHIP.md`; общие файлы — минимальные диффы.
 6. По готовности: критерии в задаче, `./scripts/verify.sh` и smoke на эмуляторах ([docs/LOCAL_DEV.md](../docs/LOCAL_DEV.md)), коммит, PR в `main`.
 7. Перенести задачу в `tasks/done/`, обновить чеклист в файле.
+
+Шаги 3–4 обязательны для **всех** (люди и агенты): без push claim на remote индекс задачи не считается занятым.
 
 ## Что harness не делает
 

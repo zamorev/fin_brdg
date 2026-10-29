@@ -19,7 +19,7 @@ npm install && (cd functions && npm install) && (cd v2/web && npm install)
 
 ## Рабочий цикл (ReAct)
 
-1. **Reason** — задача в `tasks/in-progress/`, зона `owns`, зависимости в `tasks/done/`.
+1. **Reason** — задача в `tasks/in-progress/` (после claim — **сразу** commit + push на remote, до кода), зона `owns`, зависимости в `tasks/done/`.
 2. **Act** — ветка `agent/<ник>/<id>`, правки только в своей зоне ([harness/OWNERSHIP.md](harness/OWNERSHIP.md)).
 3. **Observe** — `./scripts/verify.sh` + smoke из [docs/QUALITY.md](docs/QUALITY.md).
 4. **Repeat** — до выполнения acceptance criteria; PR в `main`.

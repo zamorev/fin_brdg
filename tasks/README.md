@@ -28,4 +28,6 @@
 - `backlog/` → `in-progress/` при старте
 - `in-progress/` → `done/` после merge в `main`
 
+**Сразу после claim:** обновить frontmatter, закоммитить перенос и **запушить** ветку на remote — иначе другой участник может взять тот же id. Подробно: [harness/COORDINATION.md](../harness/COORDINATION.md) («Claim»).
+
 Не редактируй чужую задачу в `in-progress/` без согласования.

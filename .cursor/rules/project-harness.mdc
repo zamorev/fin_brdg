@@ -7,7 +7,7 @@ alwaysApply: true
 
 - Продукт: `docs/PRODUCT.md`. Не добавлять фичи вне MVP без явного запроса.
 - Перед кодом: активная задача в `tasks/in-progress/` или явное указание пользователя.
-- Соблюдать `harness/OWNERSHIP.md`; один PR — одна задача; коммиты `Txx: ...`; коммитить и пушить ветку по ходу работы (`harness/COORDINATION.md`).
+- Соблюдать `harness/OWNERSHIP.md`; один PR — одна задача; коммиты `Txx: ...`; **после claim** (перенос в `tasks/in-progress/` + frontmatter) — сразу commit и push на remote, до кода (`harness/COORDINATION.md`); дальше коммитить и пушить ветку по ходу работы.
 - Стек: TypeScript. UI — `v2/web` (React, Vite), API и Firestore — `functions/` (Firebase Functions). Устройство: `docs/V2.md`, локальный запуск: `docs/LOCAL_DEV.md`.
 - Не коммитить `.env`, `functions/.env`, секреты.
 - Перед завершением задачи: `./scripts/verify.sh` (см. `docs/QUALITY.md`).
