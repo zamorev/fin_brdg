@@ -1,12 +1,15 @@
 ---
 id: T27
 title: Квест 1 — ползунки, минимумы, статус распределения, статичная кнопка
-status: backlog
+status: in-progress
 owns:
   - J1: v2/web/src/screens/QuestBudget.tsx, v2/web/src/components/MainAction.tsx, v2/web/src/styles/global.css (ползунки, цвет перебора)
   - docs/exec-plans/active/T27-quest1-plan.md (новый, фаза A)
 depends-on: []
 priority: высокий
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T27
+started: 2026-10-29
 ---
 
 # T27 — Квест «Неделя на 1 500 ₽»: удобные ползунки и понятный итог
