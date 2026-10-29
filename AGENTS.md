@@ -31,6 +31,7 @@ npm install && (cd functions && npm install) && (cd v2/web && npm install)
 | Вопрос | Документ |
 |--------|----------|
 | Что строим? | [docs/product-specs/index.md](docs/product-specs/index.md) |
+| Какую задачу брать? | [docs/exec-plans/active/epic-dod.md](docs/exec-plans/active/epic-dod.md) — очередь и параллельность |
 | Куда класть код? | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Как устроено приложение? | [docs/V2.md](docs/V2.md) — `v2/web` + `functions/` |
 | Как запустить локально? | [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) |
