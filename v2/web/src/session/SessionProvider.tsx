@@ -46,7 +46,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setOnboarding(data);
         setUser(null);
       } else {
-        setUser(data as SessionUser);
+        setUser({
+          ...(data as SessionUser),
+          activeScenarioStep:
+            (data as SessionUser).activeScenarioStep ?? null,
+          pendingScenarioStep:
+            (data as SessionUser).pendingScenarioStep ?? null,
+        });
         setOnboarding(null);
       }
     } catch (e) {

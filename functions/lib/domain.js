@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UNPLANNED_TICKET = exports.CATEGORY_ORDER = exports.CATEGORY_MINIMUMS = exports.DEFAULT_ALLOCATION = exports.WEEKLY_BUDGET = void 0;
 exports.total = total;
 exports.validateAllocation = validateAllocation;
+exports.applyScenarioEffects = applyScenarioEffects;
 exports.applyUnplanned = applyUnplanned;
 exports.validateRuleChange = validateRuleChange;
 exports.WEEKLY_BUDGET = 1500;
@@ -29,13 +30,13 @@ exports.CATEGORY_ORDER = [
 function total(a) {
     return exports.CATEGORY_ORDER.reduce((s, k) => s + a[k], 0);
 }
-function validateAllocation(a) {
+function validateAllocation(a, weeklyBudget = exports.WEEKLY_BUDGET) {
     const errors = [];
     const sum = total(a);
-    if (sum !== exports.WEEKLY_BUDGET) {
-        const diff = Math.abs(sum - exports.WEEKLY_BUDGET);
-        errors.push(sum > exports.WEEKLY_BUDGET
-            ? `На ${diff} ₽ больше, чем ${exports.WEEKLY_BUDGET} ₽ на неделю — убери лишнее`
+    if (sum !== weeklyBudget) {
+        const diff = Math.abs(sum - weeklyBudget);
+        errors.push(sum > weeklyBudget
+            ? `На ${diff} ₽ больше, чем ${weeklyBudget} ₽ на неделю — убери лишнее`
             : `Осталось распределить ещё ${diff} ₽`);
     }
     for (const key of exports.CATEGORY_ORDER) {
@@ -49,6 +50,15 @@ function validateAllocation(a) {
     return errors;
 }
 exports.UNPLANNED_TICKET = 250;
+function applyScenarioEffects(base, effects) {
+    const next = { ...base };
+    for (const effect of effects) {
+        if (effect.type !== "spend")
+            continue;
+        next[effect.category] = Math.max(0, next[effect.category] - effect.amount);
+    }
+    return next;
+}
 function applyUnplanned(base, choice) {
     const next = { ...base };
     if (choice === "decline")

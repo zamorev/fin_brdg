@@ -13,4 +13,6 @@
 cd v2/web && npm install && npm run dev
 ```
 
+**Лаунчер:** [`scripts/Launch v2 Dev.command`](../scripts/Launch%20v2%20Dev.command) (двойной клик) или `npm run dev:v2` из корня.
+
 Деплой: [scripts/deploy-v2.sh](../scripts/deploy-v2.sh) из корня репо.

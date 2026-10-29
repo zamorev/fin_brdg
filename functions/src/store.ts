@@ -2,6 +2,7 @@ import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
   applyUnplanned,
   DEFAULT_ALLOCATION,
+  WEEKLY_BUDGET,
   type Allocation,
   type RequestStatus,
   type UnplannedChoice,
@@ -15,6 +16,13 @@ import type { TelegramUser } from "./telegram";
 import { displayName } from "./telegram";
 import { schedulePhotoRefresh, serveFamilyMemberAvatar, syncUserProfilePhoto } from "./profilePhoto";
 import { consumePendingInvite } from "./pendingInvite";
+import {
+  answerScenarioRun,
+  applyScenarioAllocationUpdate,
+  buildScenarioSessionFields,
+  startScenarioRun,
+} from "./scenarioRuns";
+import { loadScenario } from "./scenarios/registry";
 
 const db = () => getFirestore();
 
@@ -48,6 +56,8 @@ export type FamilyDoc = {
   level: number;
   xpToNext: number;
   skills: string[];
+  /** telegramId → лимит на неделю (₽), только подростки семьи. */
+  teenWeeklyBudgets?: Record<string, number>;
 };
 
 export type RequestDoc = {
@@ -68,6 +78,8 @@ export type FamilyMemberView = {
   isYou: boolean;
   photoUrl?: string;
   hasAvatar: boolean;
+  /** Только для userType teen — из families.teenWeeklyBudgets. */
+  weeklyBudget?: number;
 };
 
 export type OnboardingMode = "create" | "join";
@@ -260,16 +272,63 @@ export async function resolveInviterDisplayName(
   return fallback;
 }
 
+async function syncTeenWeeklyBudgets(familyId: string, data: FamilyDoc): Promise<FamilyDoc> {
+  const q = await db().collection("users").where("familyId", "==", familyId).get();
+  const teenIds: string[] = [];
+  for (const doc of q.docs) {
+    const profile = doc.data() as UserDoc;
+    if (isOnboardedUser(profile) && profile.userType === "teen") {
+      teenIds.push(doc.id);
+    }
+  }
+
+  const budgets = { ...(data.teenWeeklyBudgets ?? {}) };
+  let dirty = false;
+  for (const id of teenIds) {
+    if (budgets[id] === undefined) {
+      budgets[id] = WEEKLY_BUDGET;
+      dirty = true;
+    }
+  }
+  for (const key of Object.keys(budgets)) {
+    if (!teenIds.includes(key)) {
+      delete budgets[key];
+      dirty = true;
+    }
+  }
+
+  if (dirty) {
+    await db().collection("families").doc(familyId).update({ teenWeeklyBudgets: budgets });
+  }
+
+  return { ...data, teenWeeklyBudgets: budgets };
+}
+
+function enrichMembersWithWeeklyBudgets(
+  members: FamilyMemberView[],
+  budgets: Record<string, number>,
+): FamilyMemberView[] {
+  return members.map((member) =>
+    member.userType === "teen"
+      ? {
+          ...member,
+          weeklyBudget: budgets[String(member.telegramId)] ?? WEEKLY_BUDGET,
+        }
+      : member,
+  );
+}
+
 export async function getFamily(familyId: string): Promise<FamilyDoc> {
   const doc = await db().collection("families").doc(familyId).get();
   if (!doc.exists) {
     throw new Error("Семья не найдена");
   }
   const data = doc.data() as FamilyDoc;
-  return ensureFamilyInviteCodes(familyId, {
+  const withCodes = await ensureFamilyInviteCodes(familyId, {
     ...data,
     inviteCode: data.inviteCode ?? "",
   });
+  return syncTeenWeeklyBudgets(familyId, withCodes);
 }
 
 export async function listFamilyMembers(
@@ -319,6 +378,7 @@ function buildSessionPayload(
   family: FamilyDoc,
   members: FamilyMemberView[],
   active: ({ id: string } & RequestDoc) | null,
+  scenarioFields: Awaited<ReturnType<typeof buildScenarioSessionFields>>,
 ) {
   const teens = members.filter((m) => m.userType === "teen").length;
   const parents = members.filter((m) => m.userType === "parent").length;
@@ -353,6 +413,8 @@ function buildSessionPayload(
           parentComment: active.parentComment,
         }
       : null,
+    activeScenarioStep: scenarioFields.activeScenarioStep,
+    pendingScenarioStep: scenarioFields.pendingScenarioStep,
   };
 }
 
@@ -362,8 +424,13 @@ async function sessionForUser(
 ) {
   const family = await getFamily(profile.familyId);
   const active = await getActiveRequest(profile.familyId);
-  const members = await listFamilyMembers(profile.familyId, tg.id);
-  return buildSessionPayload(tg, profile, family, members, active);
+  const membersRaw = await listFamilyMembers(profile.familyId, tg.id);
+  const members = enrichMembersWithWeeklyBudgets(
+    membersRaw,
+    family.teenWeeklyBudgets ?? {},
+  );
+  const scenarioFields = await buildScenarioSessionFields(tg.id, profile.userType);
+  return buildSessionPayload(tg, profile, family, members, active, scenarioFields);
 }
 
 export type MeResponse =
@@ -539,7 +606,10 @@ export async function buildSession(user: TelegramUser) {
 
 export async function saveWeekBudget(user: TelegramUser, allocation: Allocation) {
   const profile = await requireUser(user, "teen");
-  const errors = validateAllocation(allocation);
+  const family = await getFamily(profile.familyId);
+  const limit =
+    family.teenWeeklyBudgets?.[String(user.id)] ?? WEEKLY_BUDGET;
+  const errors = validateAllocation(allocation, limit);
   if (errors.length) return { ok: false as const, errors: errors.map((message) => ({ message })) };
 
   const familyRef = db().collection("families").doc(profile.familyId);
@@ -596,6 +666,38 @@ export async function createRequest(
   return sessionForUser(user, profile);
 }
 
+export async function startScenario(user: TelegramUser, scenarioId: string) {
+  const profile = await requireUser(user, "teen");
+  loadScenario(scenarioId);
+  const { runId } = await startScenarioRun(user, profile.familyId, scenarioId);
+  return { runId, user: await sessionForUser(user, profile) };
+}
+
+export async function answerScenario(
+  user: TelegramUser,
+  runId: string,
+  optionId: string,
+) {
+  const profile = await requireUser(user, "teen");
+  const family = await getFamily(profile.familyId);
+  const result = await answerScenarioRun(
+    user,
+    profile.familyId,
+    runId,
+    optionId,
+    family.allocation,
+  );
+  await applyScenarioAllocationUpdate(
+    profile.familyId,
+    result.allocationAfter,
+    result.completed,
+  );
+  return {
+    ...result,
+    user: await sessionForUser(user, profile),
+  };
+}
+
 export async function decideRequest(
   user: TelegramUser,
   requestId: string,
@@ -639,7 +741,11 @@ export async function getFamilyView(user: TelegramUser, botToken?: string) {
     schedulePhotoRefresh(profile.familyId, botToken, user);
   }
   const family = await getFamily(profile.familyId);
-  const members = await listFamilyMembers(profile.familyId, user.id);
+  const membersRaw = await listFamilyMembers(profile.familyId, user.id);
+  const members = enrichMembersWithWeeklyBudgets(
+    membersRaw,
+    family.teenWeeklyBudgets ?? {},
+  );
   return {
     familyId: profile.familyId,
     inviteCode: family.inviteCodeTeen ?? family.inviteCode,

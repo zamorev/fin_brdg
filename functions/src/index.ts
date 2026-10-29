@@ -17,3 +17,5 @@ export const api = onRequest(
   },
   expressApp,
 );
+
+export { scenarioStepScheduler } from "./scenarioScheduler";

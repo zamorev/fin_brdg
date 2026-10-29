@@ -51,14 +51,14 @@ export function totalAllocation(a: Allocation): number {
 
 export type BudgetError = { message: string; category?: CategoryKey };
 
-export function validateAllocation(a: Allocation): BudgetError[] {
+export function validateAllocation(a: Allocation, weeklyBudget = WEEKLY_BUDGET): BudgetError[] {
   const errors: BudgetError[] = [];
   const total = totalAllocation(a);
-  if (total !== WEEKLY_BUDGET) {
-    const diff = total - WEEKLY_BUDGET;
+  if (total !== weeklyBudget) {
+    const diff = total - weeklyBudget;
     const direction = diff > 0 ? "больше" : "меньше";
     errors.push({
-      message: `Сумма должна быть ${formatRub(WEEKLY_BUDGET)}: сейчас на ${formatRub(Math.abs(diff))} ${direction}`,
+      message: `Сумма должна быть ${formatRub(weeklyBudget)}: сейчас на ${formatRub(Math.abs(diff))} ${direction}`,
     });
   }
   for (const key of CATEGORY_ORDER) {

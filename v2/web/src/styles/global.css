@@ -115,6 +115,30 @@ textarea {
   line-height: 1.45;
 }
 
+.dev-setup-hint {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: var(--fb-radius-md);
+  background: rgb(59 130 246 / 0.12);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--fb-text);
+}
+
+.dev-setup-hint ol {
+  margin: 8px 0 0;
+  padding-left: 1.25rem;
+}
+
+.dev-setup-hint li + li {
+  margin-top: 6px;
+}
+
+.dev-setup-hint code {
+  font-size: 0.8125rem;
+  color: var(--fb-link);
+}
+
 .build-stamp {
   opacity: 0.5;
   font-size: 0.75rem;
@@ -306,6 +330,29 @@ textarea {
 
 .section-invite-link:active {
   background: rgb(59 130 246 / 0.32);
+}
+
+.weekly-budget-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.weekly-budget-row + .weekly-budget-row {
+  border-top: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.weekly-budget-amount {
+  flex-shrink: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--fb-link);
+}
+
+.weekly-budget-amount--header {
+  font-size: 1rem;
 }
 
 .progress-ring-wrap {

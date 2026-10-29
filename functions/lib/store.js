@@ -16,6 +16,8 @@ exports.buildSession = buildSession;
 exports.saveWeekBudget = saveWeekBudget;
 exports.saveUnplanned = saveUnplanned;
 exports.createRequest = createRequest;
+exports.startScenario = startScenario;
+exports.answerScenario = answerScenario;
 exports.decideRequest = decideRequest;
 exports.getFamilyView = getFamilyView;
 exports.streamMemberAvatar = streamMemberAvatar;
@@ -24,6 +26,8 @@ const domain_1 = require("./domain");
 const telegram_1 = require("./telegram");
 const profilePhoto_1 = require("./profilePhoto");
 const pendingInvite_1 = require("./pendingInvite");
+const scenarioRuns_1 = require("./scenarioRuns");
+const registry_1 = require("./scenarios/registry");
 const db = () => (0, firestore_1.getFirestore)();
 function newInviteCode() {
     return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -182,16 +186,53 @@ async function resolveInviterDisplayName(inviteParamNormalized, inviterTelegramI
     }
     return fallback;
 }
+async function syncTeenWeeklyBudgets(familyId, data) {
+    const q = await db().collection("users").where("familyId", "==", familyId).get();
+    const teenIds = [];
+    for (const doc of q.docs) {
+        const profile = doc.data();
+        if (isOnboardedUser(profile) && profile.userType === "teen") {
+            teenIds.push(doc.id);
+        }
+    }
+    const budgets = { ...(data.teenWeeklyBudgets ?? {}) };
+    let dirty = false;
+    for (const id of teenIds) {
+        if (budgets[id] === undefined) {
+            budgets[id] = domain_1.WEEKLY_BUDGET;
+            dirty = true;
+        }
+    }
+    for (const key of Object.keys(budgets)) {
+        if (!teenIds.includes(key)) {
+            delete budgets[key];
+            dirty = true;
+        }
+    }
+    if (dirty) {
+        await db().collection("families").doc(familyId).update({ teenWeeklyBudgets: budgets });
+    }
+    return { ...data, teenWeeklyBudgets: budgets };
+}
+function enrichMembersWithWeeklyBudgets(members, budgets) {
+    return members.map((member) => member.userType === "teen"
+        ? {
+            ...member,
+            weeklyBudget: budgets[String(member.telegramId)] ?? domain_1.WEEKLY_BUDGET,
+        }
+        : member);
+}
 async function getFamily(familyId) {
     const doc = await db().collection("families").doc(familyId).get();
     if (!doc.exists) {
         throw new Error("Семья не найдена");
     }
     const data = doc.data();
-    return ensureFamilyInviteCodes(familyId, {
+    const withCodes = await ensureFamilyInviteCodes(familyId, {
         ...data,
         inviteCode: data.inviteCode ?? "",
     });
+    return syncTeenWeeklyBudgets(familyId, withCodes);
 }
 async function listFamilyMembers(familyId, selfTelegramId) {
     const q = await db().collection("users").where("familyId", "==", familyId).get();
@@ -229,7 +270,7 @@ async function getActiveRequest(familyId) {
     const doc = q.docs[0];
     return { id: doc.id, ...doc.data() };
 }
-function buildSessionPayload(tg, profile, family, members, active) {
+function buildSessionPayload(tg, profile, family, members, active, scenarioFields) {
     const teens = members.filter((m) => m.userType === "teen").length;
     const parents = members.filter((m) => m.userType === "parent").length;
     return {
@@ -262,13 +303,17 @@ function buildSessionPayload(tg, profile, family, members, active) {
                 parentComment: active.parentComment,
             }
             : null,
+        activeScenarioStep: scenarioFields.activeScenarioStep,
+        pendingScenarioStep: scenarioFields.pendingScenarioStep,
     };
 }
 async function sessionForUser(tg, profile) {
     const family = await getFamily(profile.familyId);
     const active = await getActiveRequest(profile.familyId);
-    const members = await listFamilyMembers(profile.familyId, tg.id);
-    return buildSessionPayload(tg, profile, family, members, active);
+    const membersRaw = await listFamilyMembers(profile.familyId, tg.id);
+    const members = enrichMembersWithWeeklyBudgets(membersRaw, family.teenWeeklyBudgets ?? {});
+    const scenarioFields = await (0, scenarioRuns_1.buildScenarioSessionFields)(tg.id, profile.userType);
+    return buildSessionPayload(tg, profile, family, members, active, scenarioFields);
 }
 async function buildMe(user, botToken, startParam) {
     await ensureUserRecord(user, botToken);
@@ -397,7 +442,9 @@ async function buildSession(user) {
 }
 async function saveWeekBudget(user, allocation) {
     const profile = await requireUser(user, "teen");
-    const errors = (0, domain_1.validateAllocation)(allocation);
+    const family = await getFamily(profile.familyId);
+    const limit = family.teenWeeklyBudgets?.[String(user.id)] ?? domain_1.WEEKLY_BUDGET;
+    const errors = (0, domain_1.validateAllocation)(allocation, limit);
     if (errors.length)
         return { ok: false, errors: errors.map((message) => ({ message })) };
     const familyRef = db().collection("families").doc(profile.familyId);
@@ -446,6 +493,22 @@ async function createRequest(user, proposedAmount, explanation) {
     });
     return sessionForUser(user, profile);
 }
+async function startScenario(user, scenarioId) {
+    const profile = await requireUser(user, "teen");
+    (0, registry_1.loadScenario)(scenarioId);
+    const { runId } = await (0, scenarioRuns_1.startScenarioRun)(user, profile.familyId, scenarioId);
+    return { runId, user: await sessionForUser(user, profile) };
+}
+async function answerScenario(user, runId, optionId) {
+    const profile = await requireUser(user, "teen");
+    const family = await getFamily(profile.familyId);
+    const result = await (0, scenarioRuns_1.answerScenarioRun)(user, profile.familyId, runId, optionId, family.allocation);
+    await (0, scenarioRuns_1.applyScenarioAllocationUpdate)(profile.familyId, result.allocationAfter, result.completed);
+    return {
+        ...result,
+        user: await sessionForUser(user, profile),
+    };
+}
 async function decideRequest(user, requestId, action, comment) {
     const profile = await requireUser(user, "parent");
     const ref = db().collection("requests").doc(requestId);
@@ -485,7 +548,8 @@ async function getFamilyView(user, botToken) {
         (0, profilePhoto_1.schedulePhotoRefresh)(profile.familyId, botToken, user);
     }
     const family = await getFamily(profile.familyId);
-    const members = await listFamilyMembers(profile.familyId, user.id);
+    const membersRaw = await listFamilyMembers(profile.familyId, user.id);
+    const members = enrichMembersWithWeeklyBudgets(membersRaw, family.teenWeeklyBudgets ?? {});
     return {
         familyId: profile.familyId,
         inviteCode: family.inviteCodeTeen ?? family.inviteCode,

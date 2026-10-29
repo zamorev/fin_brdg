@@ -129,6 +129,24 @@ function createApp() {
             res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
         }
     });
+    app.post("/api/scenarios/:scenarioId/start", telegram_1.authMiddleware, async (req, res) => {
+        try {
+            const result = await (0, store_1.startScenario)(req.telegramUser, String(req.params.scenarioId));
+            res.json(result);
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    app.post("/api/scenarios/runs/:runId/answer", telegram_1.authMiddleware, async (req, res) => {
+        try {
+            const result = await (0, store_1.answerScenario)(req.telegramUser, String(req.params.runId), String(req.body.optionId ?? ""));
+            res.json(result);
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
     app.post("/api/requests", telegram_1.authMiddleware, async (req, res) => {
         try {
             const user = await (0, store_1.createRequest)(req.telegramUser, Number(req.body.proposedAmount), String(req.body.explanation ?? ""));

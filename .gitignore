@@ -4,6 +4,8 @@
 # Firebase / Node (Hosting deploy)
 .firebase/
 node_modules/
+.local/
+web/js/config.local.js
 functions/.env
 
 # Локальный конфиг превью Claude Code

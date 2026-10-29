@@ -8,6 +8,8 @@ import {
   decideRequest,
   saveUnplanned,
   saveWeekBudget,
+  startScenario,
+  answerScenario,
   type Allocation,
   type UserType,
   getFamilyView,
@@ -150,6 +152,28 @@ export function createApp() {
       const choice = req.body.choice;
       const user = await saveUnplanned(req.telegramUser!, choice);
       res.json({ user });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/scenarios/:scenarioId/start", authMiddleware, async (req, res) => {
+    try {
+      const result = await startScenario(req.telegramUser!, String(req.params.scenarioId));
+      res.json(result);
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.post("/api/scenarios/runs/:runId/answer", authMiddleware, async (req, res) => {
+    try {
+      const result = await answerScenario(
+        req.telegramUser!,
+        String(req.params.runId),
+        String(req.body.optionId ?? ""),
+      );
+      res.json(result);
     } catch (e) {
       res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
     }

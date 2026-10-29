@@ -1,6 +1,12 @@
-import { formatRub, REQUEST_STATUS_LABELS, WEEKLY_BUDGET } from "../domain/budget";
+import { formatRub, REQUEST_STATUS_LABELS } from "../domain/budget";
+import { selfWeeklyBudget } from "../domain/memberBudget";
 import type { SessionUser } from "../domain/types";
+import { startScenario } from "../api/client";
+import { FamilyWeeklyBudgetSection } from "../components/FamilyWeeklyBudgetSection";
 import { MainAction } from "../components/MainAction";
+import { useState } from "react";
+
+const CINEMA_SCENARIO_ID = "cinema_chain_v1";
 
 type Props = {
   user: SessionUser;
@@ -8,6 +14,8 @@ type Props = {
   onOpenAgreements: () => void;
   onOpenRequest: () => void;
   onOpenFamily: () => void;
+  onOpenScenarioStep: () => void;
+  onScenarioStarted: (user: SessionUser) => void;
 };
 
 export function TeenHome({
@@ -16,9 +24,25 @@ export function TeenHome({
   onOpenAgreements,
   onOpenRequest,
   onOpenFamily,
+  onOpenScenarioStep,
+  onScenarioStarted,
 }: Props) {
   const req = user.activeRequest;
   const entertainment = user.family.allocation.entertainment;
+  const myWeeklyBudget = selfWeeklyBudget(user);
+  const activeStep = user.activeScenarioStep ?? null;
+  const pendingStep = user.pendingScenarioStep ?? null;
+  const [startingScenario, setStartingScenario] = useState(false);
+
+  const startCinemaScenario = async () => {
+    setStartingScenario(true);
+    try {
+      const res = await startScenario(CINEMA_SCENARIO_ID);
+      onScenarioStarted(res.user);
+    } finally {
+      setStartingScenario(false);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -72,7 +96,7 @@ export function TeenHome({
             бюджет на эту неделю
           </div>
           <div style={{ fontSize: "2rem", fontWeight: 700, marginTop: 4 }}>
-            {formatRub(WEEKLY_BUDGET)}
+            {formatRub(myWeeklyBudget)}
           </div>
         </div>
       </div>
@@ -93,6 +117,45 @@ export function TeenHome({
           </span>
         </button>
 
+        {activeStep ? (
+          <button type="button" className="task-row" onClick={onOpenScenarioStep}>
+            <span className="task-icon">🎬</span>
+            <span>
+              <div className="task-title">{activeStep.scenarioTitle}</div>
+              <div className="task-sub">Нужен твой ответ</div>
+            </span>
+            <span className="badge">Новое</span>
+          </button>
+        ) : pendingStep ? (
+          <div className="task-row" style={{ cursor: "default" }}>
+            <span className="task-icon">🎬</span>
+            <span>
+              <div className="task-title">{pendingStep.scenarioTitle}</div>
+              <div className="task-sub">
+                Следующий шаг около{" "}
+                {new Date(pendingStep.readyAt).toLocaleString("ru-RU", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </span>
+          </div>
+        ) : user.family.questWeekBudgetCompleted ? (
+          <button
+            type="button"
+            className="task-row"
+            disabled={startingScenario}
+            onClick={() => void startCinemaScenario()}
+          >
+            <span className="task-icon">🎬</span>
+            <span>
+              <div className="task-title">Ой, кино</div>
+              <div className="task-sub">Сюрпризная трата — цепочка решений</div>
+            </span>
+            <span className="inline-action">{startingScenario ? "…" : "Начать"}</span>
+          </button>
+        ) : null}
+
         {req && (
           <button type="button" className="task-row" onClick={onOpenRequest}>
             <span className="task-icon">⏳</span>
@@ -105,7 +168,11 @@ export function TeenHome({
             <span className="badge">{REQUEST_STATUS_LABELS[req.status]}</span>
           </button>
         )}
+      </div>
 
+      <FamilyWeeklyBudgetSection members={user.members} />
+
+      <div className="card task-list task-list--tap">
         <button type="button" className="task-row" onClick={onOpenFamily}>
           <span className="task-icon" style={{ background: "rgb(59 130 246 / 0.12)" }}>
             👨‍👩‍👧

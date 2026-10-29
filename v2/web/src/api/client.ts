@@ -1,4 +1,5 @@
 import type { OnboardingPreview, SessionUser, UserType } from "../domain/types";
+import type { Allocation, CategoryKey } from "../domain/budget";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
@@ -113,6 +114,33 @@ export function decideRequest(
   return request<{ user: SessionUser }>(`/requests/${requestId}/decide`, {
     method: "POST",
     body: JSON.stringify({ action, comment }),
+  });
+}
+
+export function startScenario(scenarioId: string) {
+  return request<{ runId: string; user: SessionUser }>(
+    `/scenarios/${encodeURIComponent(scenarioId)}/start`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+export type ScenarioAnswerResponse = {
+  user: SessionUser;
+  effectsApplied: Array<{
+    type: "spend";
+    category: CategoryKey;
+    amount: number;
+  }>;
+  allocationBefore: Allocation;
+  allocationAfter: Allocation;
+  completed: boolean;
+  nextPendingReadyAt: string | null;
+};
+
+export function answerScenarioRun(runId: string, optionId: string) {
+  return request<ScenarioAnswerResponse>(`/scenarios/runs/${encodeURIComponent(runId)}/answer`, {
+    method: "POST",
+    body: JSON.stringify({ optionId }),
   });
 }
 

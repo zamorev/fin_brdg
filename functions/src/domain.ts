@@ -36,14 +36,14 @@ export function total(a: Allocation): number {
   return CATEGORY_ORDER.reduce((s, k) => s + a[k], 0);
 }
 
-export function validateAllocation(a: Allocation): string[] {
+export function validateAllocation(a: Allocation, weeklyBudget = WEEKLY_BUDGET): string[] {
   const errors: string[] = [];
   const sum = total(a);
-  if (sum !== WEEKLY_BUDGET) {
-    const diff = Math.abs(sum - WEEKLY_BUDGET);
+  if (sum !== weeklyBudget) {
+    const diff = Math.abs(sum - weeklyBudget);
     errors.push(
-      sum > WEEKLY_BUDGET
-        ? `На ${diff} ₽ больше, чем ${WEEKLY_BUDGET} ₽ на неделю — убери лишнее`
+      sum > weeklyBudget
+        ? `На ${diff} ₽ больше, чем ${weeklyBudget} ₽ на неделю — убери лишнее`
         : `Осталось распределить ещё ${diff} ₽`,
     );
   }
@@ -64,6 +64,17 @@ export type UnplannedChoice =
   | "decline";
 
 export const UNPLANNED_TICKET = 250;
+
+export type SpendEffect = { type: "spend"; category: CategoryKey; amount: number };
+
+export function applyScenarioEffects(base: Allocation, effects: SpendEffect[]): Allocation {
+  const next = { ...base };
+  for (const effect of effects) {
+    if (effect.type !== "spend") continue;
+    next[effect.category] = Math.max(0, next[effect.category] - effect.amount);
+  }
+  return next;
+}
 
 export function applyUnplanned(base: Allocation, choice: UnplannedChoice): Allocation {
   const next = { ...base };

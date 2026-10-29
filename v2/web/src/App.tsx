@@ -7,11 +7,17 @@ import { TeenHome } from "./screens/TeenHome";
 import { QuestBudget } from "./screens/QuestBudget";
 import { UnplannedPurchase } from "./screens/UnplannedPurchase";
 import { Consequences } from "./screens/Consequences";
+import {
+  ScenarioOutcome,
+  ScenarioStepScreen,
+  type AnswerSummary,
+} from "./screens/ScenarioStep";
 import { NewConditions } from "./screens/NewConditions";
 import { RequestSent } from "./screens/RequestSent";
 import { RequestStatusTeen } from "./screens/RequestStatusTeen";
 import { ParentRequest } from "./screens/ParentRequest";
 import { FamilyScreen } from "./screens/FamilyScreen";
+import { FamilyWeeklyBudgetSection } from "./components/FamilyWeeklyBudgetSection";
 import { APP_BUILD_ID } from "./buildInfo";
 
 type Route =
@@ -27,7 +33,9 @@ type Route =
   | { name: "new-conditions" }
   | { name: "request-sent" }
   | { name: "request-status" }
-  | { name: "parent-request" };
+  | { name: "parent-request" }
+  | { name: "scenario-step" }
+  | { name: "scenario-outcome"; summary: AnswerSummary };
 
 export function App() {
   const { user, onboarding, loading, error, setUser, refresh } = useSession();
@@ -53,6 +61,13 @@ export function App() {
     window.scrollTo(0, 0);
   }, [route.name]);
 
+  useEffect(() => {
+    if (!user || user.userType !== "teen") return;
+    const runId = new URLSearchParams(window.location.search).get("run");
+    if (!runId || user.activeScenarioStep?.runId !== runId) return;
+    setRoute({ name: "scenario-step" });
+  }, [user]);
+
   if (loading) {
     return <div className="loading">Загружаем…</div>;
   }
@@ -62,6 +77,7 @@ export function App() {
       <div className="app-shell">
         <h1 className="screen-title">Не получилось</h1>
         <p className="screen-sub">{error}</p>
+        {import.meta.env.DEV ? <LocalDevHint /> : null}
       </div>
     );
   }
@@ -123,6 +139,9 @@ export function App() {
               <span className="badge">{REQUEST_STATUS_LABELS[pending.status]}</span>
             </button>
           ) : null}
+        </div>
+        <FamilyWeeklyBudgetSection members={user.members} />
+        <div className="card task-list task-list--tap">
           <button
             type="button"
             className="task-row"
@@ -209,6 +228,38 @@ export function App() {
           }}
         />
       );
+    case "scenario-step": {
+      const step = user.activeScenarioStep;
+      if (!step) {
+        goHome();
+        return null;
+      }
+      return (
+        <ScenarioStepScreen
+          step={step}
+          onBack={goHome}
+          onAnswered={(u, summary) => {
+            setUser(u);
+            if (summary) {
+              setRoute({ name: "scenario-outcome", summary });
+            } else {
+              goHome();
+            }
+          }}
+        />
+      );
+    }
+    case "scenario-outcome":
+      return (
+        <ScenarioOutcome
+          user={user}
+          before={route.summary.allocationBefore}
+          after={route.summary.allocationAfter}
+          completed={route.summary.completed}
+          nextPendingReadyAt={route.summary.nextPendingReadyAt}
+          onDone={goHome}
+        />
+      );
     case "home":
     default:
       return (
@@ -218,9 +269,48 @@ export function App() {
           onOpenAgreements={goHome}
           onOpenRequest={() => setRoute({ name: "request-status" })}
           onOpenFamily={openFamily}
+          onOpenScenarioStep={() => setRoute({ name: "scenario-step" })}
+          onScenarioStarted={(u) => {
+            setUser(u);
+            if (u.activeScenarioStep) {
+              setRoute({ name: "scenario-step" });
+            }
+          }}
         />
       );
   }
+}
+
+function LocalDevHint() {
+  return (
+    <div className="dev-setup-hint">
+      <p>
+        <strong>Локально</strong> нужны два процесса:
+      </p>
+      <ol>
+        <li>
+          В <code>functions/.env</code> добавь <code>AUTH_SKIP=1</code> (см.{" "}
+          <code>functions/.env.example</code>).
+        </li>
+        <li>
+          Из корня репо:{" "}
+          <code>firebase emulators:start --only functions</code>
+          <span className="hint-footer" style={{ display: "block", marginTop: 4 }}>
+            (нужен Firestore-эмулятор — установи Java и добавь{" "}
+            <code>,firestore</code> в команду)
+          </span>
+        </li>
+        <li>
+          Отдельно: <code>cd v2/web && npm run dev</code> →{" "}
+          <code>http://localhost:5173</code>
+        </li>
+      </ol>
+      <p className="hint-footer">
+        Без эмулятора запрос <code>/api/me</code> не доходит — открой приложение через
+        бота на проде или подними эмулятор.
+      </p>
+    </div>
+  );
 }
 
 function pluralMembers(n: number): string {

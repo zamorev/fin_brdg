@@ -9,6 +9,8 @@ export type FamilyMember = {
   isYou: boolean;
   photoUrl?: string;
   hasAvatar?: boolean;
+  /** Лимит на неделю (₽), только для подростков. */
+  weeklyBudget?: number;
 };
 
 export type RuleChangeRequest = {
@@ -44,6 +46,24 @@ export type SessionUser = {
   family: FamilyState;
   members: FamilyMember[];
   activeRequest: RuleChangeRequest | null;
+  activeScenarioStep: ScenarioStep | null;
+  pendingScenarioStep: PendingScenarioStep | null;
+};
+
+export type ScenarioStep = {
+  runId: string;
+  scenarioId: string;
+  scenarioTitle: string;
+  nodeId: string;
+  prompt: string;
+  options: Array<{ id: string; label: string }>;
+};
+
+export type PendingScenarioStep = {
+  runId: string;
+  scenarioId: string;
+  scenarioTitle: string;
+  readyAt: string;
 };
 
 export type OnboardingPreview = {

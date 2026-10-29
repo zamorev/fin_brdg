@@ -5,13 +5,13 @@ import {
   formatRub,
   totalAllocation,
   validateAllocation,
-  WEEKLY_BUDGET,
   type Allocation,
 } from "../domain/budget";
 import { checkWeekBudget } from "../api/client";
 import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
 import { useTwa } from "../twa/TwaProvider";
+import { selfWeeklyBudget } from "../domain/memberBudget";
 import type { SessionUser } from "../domain/types";
 
 type Props = {
@@ -28,6 +28,7 @@ export function QuestBudget({
   onContinueUnplanned,
 }: Props) {
   const { haptic } = useTwa();
+  const weeklyBudget = selfWeeklyBudget(user);
   const [values, setValues] = useState<Allocation>(() => ({
     ...user.family.allocation,
   }));
@@ -37,10 +38,10 @@ export function QuestBudget({
   useBackAction(onBack);
 
   const total = useMemo(() => totalAllocation(values), [values]);
-  const totalOk = total === WEEKLY_BUDGET;
+  const totalOk = total === weeklyBudget;
 
   const onCheck = useCallback(async () => {
-    const local = validateAllocation(values);
+    const local = validateAllocation(values, weeklyBudget);
     if (local.length) {
       setErrors(local.map((e) => e.message));
       haptic("error");
@@ -68,17 +69,17 @@ export function QuestBudget({
     } finally {
       setSubmitting(false);
     }
-  }, [values, haptic, onSuccess, onContinueUnplanned, onBack]);
+  }, [values, weeklyBudget, haptic, onSuccess, onContinueUnplanned, onBack]);
 
   return (
     <div className="app-shell">
       <p style={{ color: "var(--fb-hint)", margin: "0 0 8px", fontSize: "0.8125rem" }}>
         Квест 1 из 1
       </p>
-      <h1 className="screen-title">Неделя на 1 500 ₽</h1>
+      <h1 className="screen-title">Неделя на {formatRub(weeklyBudget)}</h1>
       <p className="screen-sub">
-        У тебя есть сумма в 1 500 ₽ на неделю. Распредели её так, чтобы покрыть
-        обязательные расходы, отложить на цель и оставить резерв на
+        У тебя есть {formatRub(weeklyBudget)} на неделю. Распредели сумму так, чтобы
+        покрыть обязательные расходы, отложить на цель и оставить резерв на
         непредвиденное.
       </p>
 
@@ -92,7 +93,7 @@ export function QuestBudget({
             <input
               type="range"
               min={0}
-              max={WEEKLY_BUDGET}
+              max={weeklyBudget}
               step={50}
               value={values[key]}
               onChange={(e) =>
@@ -108,7 +109,7 @@ export function QuestBudget({
         <div className="row-between" style={{ marginTop: 8 }}>
           <span>Распределено</span>
           <strong style={{ color: totalOk ? "var(--fb-success)" : "var(--fb-warning)" }}>
-            {total} из {WEEKLY_BUDGET} ₽
+            {total} из {formatRub(weeklyBudget)}
           </strong>
         </div>
 

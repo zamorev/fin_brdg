@@ -7,6 +7,23 @@
         { "fieldPath": "familyId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "scenarioRuns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "stepStatus", "order": "ASCENDING" },
+        { "fieldPath": "readyAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scenarioRuns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teenTelegramId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scenarioId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

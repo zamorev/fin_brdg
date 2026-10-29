@@ -7,7 +7,8 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "test": "npm run build && node --test lib/scenarioEngine.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",
