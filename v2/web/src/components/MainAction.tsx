@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useTwa } from "../twa/TwaProvider";
 
 type Props = {
@@ -17,6 +17,16 @@ export function MainAction({
 }: Props) {
   const { setMainButton, hideMainButton, isTwa } = useTwa();
 
+  // Новый onClick на каждый рендер не должен перерегистрировать MainButton (иначе кнопка мигает).
+  const onClickRef = useRef(onClick);
+  const enabledRef = useRef(enabled);
+  const shownRef = useRef(false);
+  useLayoutEffect(() => {
+    onClickRef.current = onClick;
+    enabledRef.current = enabled;
+  });
+  const handleClick = useCallback(() => onClickRef.current(), []);
+
   useEffect(() => {
     if (!visible) {
       hideMainButton();
@@ -27,13 +37,25 @@ export function MainAction({
     }
     // MainButton появляется после тапа по списку — иначе TWA ловит «хвост» жеста как «Готово».
     const timer = window.setTimeout(() => {
-      setMainButton({ text, enabled, visible: true, onClick });
+      shownRef.current = true;
+      setMainButton({
+        text,
+        enabled: enabledRef.current,
+        visible: true,
+        onClick: handleClick,
+      });
     }, 450);
     return () => {
       window.clearTimeout(timer);
+      shownRef.current = false;
       hideMainButton();
     };
-  }, [text, enabled, visible, onClick, setMainButton, hideMainButton, isTwa]);
+  }, [text, visible, handleClick, setMainButton, hideMainButton, isTwa]);
+
+  // enabled меняем на уже показанной кнопке, без hide/show и нового таймера.
+  useEffect(() => {
+    if (shownRef.current) setMainButton({ enabled });
+  }, [enabled, setMainButton]);
 
   if (isTwa) return null;
 
