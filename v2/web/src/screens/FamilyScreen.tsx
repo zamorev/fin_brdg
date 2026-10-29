@@ -11,7 +11,7 @@ type Props = {
   user: SessionUser;
   /** Telegram «Назад» — с короткой задержкой от случайного тапа по списку. */
   onBack: () => void;
-  /** Явный выход («Готово» / MainButton). */
+  /** Явный выход («← Назад» сверху экрана), без guard. */
   onDone: () => void;
 };
 
@@ -54,6 +54,9 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
 
   return (
     <div className="app-shell app-shell--inline-footer">
+      <button type="button" className="screen-back" onClick={onDone}>
+        ← Назад
+      </button>
       <h1 className="screen-title">
         <span className="screen-title__brand">Fin Bridge</span>
         <span className="screen-title__sep"> / </span>
@@ -107,9 +110,6 @@ export function FamilyScreen({ user, onBack, onDone }: Props) {
         каждого подростка — позже.
       </p>
 
-      <button type="button" className="btn-primary-scroll" onClick={onDone}>
-        Готово
-      </button>
       <p className="hint-footer build-stamp">id {APP_BUILD_ID}</p>
     </div>
   );
