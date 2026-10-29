@@ -1,7 +1,7 @@
 ---
 id: T18
 title: Hotfix — экраны закрываются сразу после открытия (BackButton)
-status: in-progress
+status: done
 claimed-by: sw3artog0d
 branch: agent/sw3artog0d/T18
 started: 2026-10-29
@@ -26,12 +26,12 @@ priority: блокер
 
 ## Acceptance Criteria
 
-- [ ] Сеттер в `TwaProvider` всегда кладёт функцию через обёртку (`setBackHandler(() => h)`), один раз в провайдере — не в каждом вызове
-- [ ] В консоли нет `Cannot update a component … while rendering`
-- [ ] Кликами в браузере (эмуляторы, [LOCAL_DEV.md](../../docs/LOCAL_DEV.md)) открываются и не закрываются сами: `QuestBudget` → `UnplannedPurchase` → `Consequences` → `NewConditions` → `RequestSent` → `RequestStatusTeen`; `ScenarioStep`; «Семья»
-- [ ] «Назад» (кнопка экрана) возвращает на главную
-- [ ] В [docs/QUALITY.md](../../docs/QUALITY.md) smoke дополнен: **«пройти экраны задачи кликами»** — «главная отрисовалась» и «API отвечает» не считаются проверкой UI
-- [ ] `./scripts/verify.sh` OK
+- [x] Сеттер в `TwaProvider` всегда кладёт функцию через обёртку (`setBackHandler(() => h)`), один раз в провайдере — не в каждом вызове
+- [x] В консоли нет `Cannot update a component … while rendering`
+- [x] Кликами в браузере (эмуляторы, [LOCAL_DEV.md](../../docs/LOCAL_DEV.md)) открываются и не закрываются сами: `QuestBudget` → `UnplannedPurchase` → `Consequences` → `NewConditions` → `RequestSent` → `RequestStatusTeen`; `ScenarioStep`; «Семья»
+- [x] «Назад» (кнопка экрана) возвращает на главную
+- [x] В [docs/QUALITY.md](../../docs/QUALITY.md) smoke дополнен: **«пройти экраны задачи кликами»** — «главная отрисовалась» и «API отвечает» не считаются проверкой UI
+- [x] `./scripts/verify.sh` OK
 - [ ] После merge — деплой фронта владельцем проекта (`./scripts/deploy-firebase-hosting.sh`) и проверка в Telegram: квест открывается, родитель открывает запрос
 
 ## Notes
