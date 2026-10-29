@@ -30,12 +30,19 @@ started: 2026-10-29
 
 ## Acceptance Criteria
 
-- [ ] `docs/ARCHITECTURE.md` — поток данных, каталоги, правила слоёв, «куда класть новый код», вход через Telegram
-- [ ] `docs/generated/firestore-schema.md` вместо `db-schema.md`; ссылки обновлены
-- [ ] `core-beliefs.md` (раздел «Код»), `FRAMEWORK.md`, `exec-plans/active/README.md`, `PRODUCT.md` («Технология») — без Streamlit/SQLite
-- [ ] `.cursor/rules/typescript-firebase.mdc` для `v2/web/**`, `functions/**`
-- [ ] `verify.sh`: typecheck + `vite build` во временную папку + проверки слоёв; после запуска `git status` чистый
-- [ ] Проверки слоёв ловят нарушение (проверено временным файлом)
-- [ ] Подзоны J/K в `OWNERSHIP.md`; проверки слоёв в `QUALITY.md`
+- [x] `docs/ARCHITECTURE.md` — поток данных, каталоги, правила слоёв, «куда класть новый код», вход через Telegram
+- [x] `docs/generated/firestore-schema.md` вместо `db-schema.md`; ссылки обновлены
+- [x] `core-beliefs.md` (раздел «Код»), `FRAMEWORK.md`, `exec-plans/active/README.md`, `PRODUCT.md` («Технология») — без Streamlit/SQLite
+- [x] `.cursor/rules/typescript-firebase.mdc` для `v2/web/**`, `functions/**`
+- [x] `verify.sh`: typecheck + `vite build` во временную папку + проверки слоёв; после запуска `git status` чистый
+- [x] Проверки слоёв ловят нарушение (проверено временным файлом)
+- [x] Подзоны J/K в `OWNERSHIP.md`; проверки слоёв в `QUALITY.md`
 
 ## Notes
+
+- Проверено 2026-10-29: `./scripts/verify.sh` → OK (~4 с), после запуска `git status` чистый (`dist/`, `lib/`, `*.tsbuildinfo` не меняются).
+- Негативная проверка: временные нарушения (импорт `firebase-admin` и `fetch` в `screens/`, `import express` в `domain.ts`) → все три пойманы, `verify.sh` выходит с кодом 1. Импорт несуществующего во фронте модуля ловит ещё раньше typecheck.
+- `npm run build` в verify не используем: он перезаписывает `v2/web/dist/` и `functions/lib/` (они в git). Вместо него — `tsc --noEmit` + `vite build --outDir <tmp>`.
+- `PRODUCT.md`: изменён только раздел «Технология» (стек, локальный запуск, две строки плана по дням без Streamlit/SQLite) — согласовано при утверждении плана.
+- После закрытия T13: `docs/V2.md` (строки 4, 6, 140), `v2/README.md` (строка 3) ещё упоминают `web/` и v1.
+
