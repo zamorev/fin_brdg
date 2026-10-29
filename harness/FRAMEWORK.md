@@ -9,13 +9,13 @@
 | Блок | В enterprise | У нас в репозитории |
 |------|----------------|---------------------|
 | System prompt | Стоящие инструкции | `templates/AGENT_PROMPT.md`, `.cursor/rules/*.mdc` |
-| Tools | API, код, БД | Python, Streamlit, SQLite; агент запускает `scripts/verify.sh` |
-| Sandbox | Изолированное выполнение | Локальный `.venv`, ветка `agent/…`, зоны `OWNERSHIP.md` |
-| Filesystem | Планы, код, артефакты | `app/`, `src/`, `tasks/`, `docs/` |
+| Tools | API, код, БД | TypeScript, React (Vite), Firebase Functions, Firestore; агент запускает `scripts/verify.sh` и эмуляторы |
+| Sandbox | Изолированное выполнение | Эмуляторы Firebase с `demo-fin-brdg` (без доступа к prod), ветка `agent/…`, зоны `OWNERSHIP.md` |
+| Filesystem | Планы, код, артефакты | `v2/web/`, `functions/`, `tasks/`, `docs/` |
 | Memory / context | Что в контексте | **Оглавление** `AGENTS.md` + точечное чтение `docs/` (не монолит) |
-| Feedback / verify | Тесты, self-check | `scripts/verify.sh`, `pytest`, acceptance в задачах |
+| Feedback / verify | Тесты, self-check | `scripts/verify.sh` (типы, сборка, слои), smoke в браузере, acceptance в задачах |
 | Guardrails | Политики, approve | MVP-запреты в `AGENTS.md`, `docs/design-docs/core-beliefs.md`, без merge в чужие зоны |
-| Observability | Логи, трейсы | Пока: ручной прогон Streamlit; позже — скриншоты/логи в задаче |
+| Observability | Логи, трейсы | Emulator UI (`localhost:4000`: данные и логи функций), консоль браузера; итоги проверки — в Notes задачи |
 
 ## OpenAI harness engineering → fin_brdg
 
@@ -24,7 +24,7 @@
 | `AGENTS.md` как **карта**, не энциклопедия | ≤100 строк, ссылки в `docs/index.md` |
 | База знаний в `docs/` | `design-docs/`, `product-specs/`, `exec-plans/` |
 | Планы как артефакты | `tasks/` (backlog → in-progress → done) |
-| Жёсткие границы слоёв | `docs/ARCHITECTURE.md` + `tests/test_architecture.py` |
+| Жёсткие границы слоёв | `docs/ARCHITECTURE.md` + проверки слоёв в `scripts/verify.sh` |
 | Инварианты механически | `verify.sh` в CI (когда подключим) |
 | Люди задают намерение | `docs/PRODUCT.md`, критерии в задачах |
 | Entropy / garbage collection | Короткие «золотые правила» в `core-beliefs.md`; не плодить дубли в AGENTS |
