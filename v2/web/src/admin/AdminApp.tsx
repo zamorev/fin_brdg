@@ -3,7 +3,6 @@ import {
   adminLogin,
   adminLogout,
   adminMe,
-  adminSeed,
   fetchAdminMessages,
   saveAdminMessage,
   setAdminToken,
@@ -173,20 +172,6 @@ export function AdminApp() {
           onClick={() => setTab("scenarios")}
         >
           Сценарии
-        </button>
-        <button
-          type="button"
-          className="admin-tab-ghost"
-          title="Один раз: скопировать тексты и сценарий «кино» из кода в Firestore, если база пустая"
-          onClick={() =>
-            void adminSeed()
-              .then(() => {
-                if (tab === "messages") return loadMessages();
-              })
-              .catch((e) => setError(e instanceof Error ? e.message : "Ошибка"))
-          }
-        >
-          Заполнить из шаблона
         </button>
       </nav>
 

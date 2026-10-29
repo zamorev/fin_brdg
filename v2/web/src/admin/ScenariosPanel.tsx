@@ -213,7 +213,7 @@ export function ScenariosPanel({ onError }: Props) {
           <div className="admin-empty">Загрузка…</div>
         ) : scenarios.length === 0 ? (
           <div className="admin-empty">
-            Сценариев пока нет. Нажми «Добавить» или «Заполнить из шаблона» на панели вкладок.
+            Сценариев пока нет. Нажми «Добавить», чтобы создать первый.
           </div>
         ) : (
           <table className="admin-table">

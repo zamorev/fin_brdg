@@ -73,18 +73,6 @@ body.admin-cms {
   background: var(--fb-accent);
 }
 
-.admin-tab-ghost {
-  margin-left: 16px;
-  font-size: 0.8125rem;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  color: var(--fb-link);
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 .admin-alert {
   margin: 0 0 16px;
   padding: 10px 14px;
@@ -561,4 +549,128 @@ body.admin-cms {
 .admin-scenarios-table {
   max-height: calc(100vh - 220px);
   min-height: 320px;
+}
+
+.admin-editor {
+  display: grid;
+  gap: 20px;
+}
+
+.admin-callout {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgb(59 130 246 / 0.12);
+  border: 1px solid rgb(59 130 246 / 0.25);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.admin-callout__list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.admin-callout__list li {
+  margin-bottom: 6px;
+}
+
+.admin-editor-section {
+  padding-bottom: 4px;
+}
+
+.admin-editor-section--highlight {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.12);
+}
+
+.admin-editor-section__title {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.admin-preview-teen {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.25);
+  border: 1px dashed rgb(255 255 255 / 0.12);
+}
+
+.admin-preview-teen__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fb-hint);
+  margin-bottom: 8px;
+}
+
+.admin-preview-teen__text {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.admin-outcome-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgb(86 186 138 / 0.12);
+  color: #a7f3d0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.admin-details {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--fb-hint);
+}
+
+.admin-details summary {
+  cursor: pointer;
+  color: var(--fb-link);
+}
+
+.admin-editor-footer {
+  padding-top: 8px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.admin-budget-block {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgb(245 196 81 / 0.06);
+  border: 1px solid rgb(245 196 81 / 0.18);
+}
+
+.admin-budget-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-budget-mode__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.admin-budget-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-budget-row {
+  align-items: end;
+}
+
+.admin-budget-row__remove {
+  align-self: center;
 }
