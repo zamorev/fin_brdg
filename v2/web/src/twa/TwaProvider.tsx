@@ -117,7 +117,12 @@ export function TwaProvider({ children }: { children: ReactNode }) {
     onClick: null,
   });
 
-  const [backHandler, setBackHandler] = useState<(() => void) | null>(null);
+  const [backHandler, setBackHandlerState] = useState<(() => void) | null>(null);
+
+  /** Функцию в useState кладём через обёртку — иначе React вызовет её как updater. */
+  const setBackHandler = useCallback((handler: (() => void) | null) => {
+    setBackHandlerState(() => handler);
+  }, []);
 
   useEffect(() => {
     if (!tg?.MainButton) return;
@@ -215,7 +220,7 @@ export function TwaProvider({ children }: { children: ReactNode }) {
       setBackHandler,
       shareFamilyInvite,
     }),
-    [tg, isTwa, setMainButton, hideMainButton, haptic, shareFamilyInvite],
+    [tg, isTwa, setMainButton, hideMainButton, haptic, setBackHandler, shareFamilyInvite],
   );
 
   return <TwaContext.Provider value={value}>{children}</TwaContext.Provider>;
