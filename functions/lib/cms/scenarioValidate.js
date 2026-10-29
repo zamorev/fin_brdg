@@ -42,6 +42,9 @@ function validateScenarioDefinition(def) {
             errors.push(`Узел ${nodeId}: id в теле не совпадает`);
         if (!node.prompt?.trim())
             errors.push(`Узел ${nodeId}: пустой prompt`);
+        if (!(node.options?.length ?? 0)) {
+            errors.push(`Узел ${nodeId}: нужен хотя бы один вариант ответа`);
+        }
         const optionIds = new Set();
         for (const opt of node.options ?? []) {
             if (!opt.id?.trim())

@@ -16,6 +16,9 @@ import {
   listScenariosForAdmin,
   saveScenarioForAdmin,
   seedCmsScenariosIfEmpty,
+  deleteScenarioNodeForAdmin,
+  createScenarioForAdmin,
+  deleteScenarioForAdmin,
 } from "./cms/scenarios";
 import type { ScenarioDefinition } from "./scenarios/types";
 
@@ -104,6 +107,19 @@ export function createAdminRouter(): Router {
     }
   });
 
+  router.post("/api/admin/scenarios", requireAdmin, async (req, res) => {
+    try {
+      const scenario = await createScenarioForAdmin(
+        String(req.body.id ?? ""),
+        String(req.body.title ?? ""),
+        req.adminLogin!,
+      );
+      res.status(201).json({ ok: true, scenario });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
   router.put("/api/admin/scenarios/:id", requireAdmin, async (req, res) => {
     try {
       const id = String(req.params.id);
@@ -114,6 +130,28 @@ export function createAdminRouter(): Router {
       }
       const { warnings } = await saveScenarioForAdmin(body, req.adminLogin!);
       res.json({ ok: true, warnings });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  router.delete("/api/admin/scenarios/:id", requireAdmin, async (req, res) => {
+    try {
+      const result = await deleteScenarioForAdmin(String(req.params.id), req.adminLogin!);
+      res.json({ ok: true, ...result });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  router.delete("/api/admin/scenarios/:id/nodes/:nodeId", requireAdmin, async (req, res) => {
+    try {
+      const { scenario, warnings } = await deleteScenarioNodeForAdmin(
+        String(req.params.id),
+        String(req.params.nodeId),
+        req.adminLogin!,
+      );
+      res.json({ ok: true, scenario, warnings });
     } catch (e) {
       res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
     }

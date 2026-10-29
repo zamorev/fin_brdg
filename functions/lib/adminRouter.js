@@ -83,6 +83,15 @@ function createAdminRouter() {
             res.status(404).json({ error: e instanceof Error ? e.message : "Ошибка" });
         }
     });
+    router.post("/api/admin/scenarios", adminAuth_1.requireAdmin, async (req, res) => {
+        try {
+            const scenario = await (0, scenarios_1.createScenarioForAdmin)(String(req.body.id ?? ""), String(req.body.title ?? ""), req.adminLogin);
+            res.status(201).json({ ok: true, scenario });
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
     router.put("/api/admin/scenarios/:id", adminAuth_1.requireAdmin, async (req, res) => {
         try {
             const id = String(req.params.id);
@@ -93,6 +102,24 @@ function createAdminRouter() {
             }
             const { warnings } = await (0, scenarios_1.saveScenarioForAdmin)(body, req.adminLogin);
             res.json({ ok: true, warnings });
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    router.delete("/api/admin/scenarios/:id", adminAuth_1.requireAdmin, async (req, res) => {
+        try {
+            const result = await (0, scenarios_1.deleteScenarioForAdmin)(String(req.params.id), req.adminLogin);
+            res.json({ ok: true, ...result });
+        }
+        catch (e) {
+            res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+        }
+    });
+    router.delete("/api/admin/scenarios/:id/nodes/:nodeId", adminAuth_1.requireAdmin, async (req, res) => {
+        try {
+            const { scenario, warnings } = await (0, scenarios_1.deleteScenarioNodeForAdmin)(String(req.params.id), String(req.params.nodeId), req.adminLogin);
+            res.json({ ok: true, scenario, warnings });
         }
         catch (e) {
             res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });

@@ -132,3 +132,24 @@ export function saveAdminScenario(scenario: ScenarioDefinition) {
     },
   );
 }
+
+export function createAdminScenario(id: string, title: string) {
+  return adminRequest<{ ok: boolean; scenario: ScenarioDefinition }>("/admin/scenarios", {
+    method: "POST",
+    body: JSON.stringify({ id, title }),
+  });
+}
+
+export function deleteAdminScenario(scenarioId: string) {
+  return adminRequest<{ ok: boolean; removed: "cms" | "overlay"; fallbackGit: boolean }>(
+    `/admin/scenarios/${encodeURIComponent(scenarioId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function deleteAdminScenarioNode(scenarioId: string, nodeId: string) {
+  return adminRequest<{ ok: boolean; scenario: ScenarioDefinition; warnings: string[] }>(
+    `/admin/scenarios/${encodeURIComponent(scenarioId)}/nodes/${encodeURIComponent(nodeId)}`,
+    { method: "DELETE" },
+  );
+}

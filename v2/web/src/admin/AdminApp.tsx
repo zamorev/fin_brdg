@@ -4,6 +4,9 @@ import {
   adminLogout,
   adminMe,
   adminSeed,
+  createAdminScenario,
+  deleteAdminScenario,
+  deleteAdminScenarioNode,
   fetchAdminMessages,
   fetchAdminScenario,
   fetchAdminScenarios,
@@ -38,6 +41,8 @@ export function AdminApp() {
   const [scenario, setScenario] = useState<ScenarioDefinition | null>(null);
   const [nodeId, setNodeId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [newScenarioId, setNewScenarioId] = useState("");
+  const [newScenarioTitle, setNewScenarioTitle] = useState("");
 
   const loadSession = useCallback(async () => {
     try {
@@ -184,10 +189,85 @@ export function AdminApp() {
       ...scenario,
       nodes: {
         ...scenario.nodes,
-        [id]: { id, prompt: "Новый шаг", options: [] },
+        [id]: { id, prompt: "Новый шаг", options: [{ id: "opt_1", label: "Новый ответ" }] },
       },
     });
     setNodeId(id);
+  };
+
+  const removeOption = (idx: number) => {
+    if (!scenario || !nodeId || !currentNode) return;
+    if (currentNode.options.length <= 1) {
+      setError("На шаге должен остаться хотя бы один вариант ответа");
+      return;
+    }
+    const label = currentNode.options[idx]?.label || `Ответ ${idx + 1}`;
+    if (!window.confirm(`Удалить вариант «${label}»?`)) return;
+    setError(null);
+    updateNode({
+      options: currentNode.options.filter((_, i) => i !== idx),
+    });
+  };
+
+  const removeCurrentNode = async () => {
+    if (!scenario || !nodeId) return;
+    const name = NODE_ID_HINT[nodeId] ?? nodeId;
+    if (!window.confirm(`Удалить шаг «${name}»? Это сохранится сразу.`)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await deleteAdminScenarioNode(scenario.id, nodeId);
+      setScenario(res.scenario);
+      setNodeId(res.scenario.startNodeId);
+      if (res.warnings?.length) {
+        setError(res.warnings.join("; "));
+      }
+      await loadScenarios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createScenario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await createAdminScenario(newScenarioId, newScenarioTitle);
+      setNewScenarioId("");
+      setNewScenarioTitle("");
+      await loadScenarios();
+      setScenario(res.scenario);
+      setNodeId(res.scenario.startNodeId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeScenario = async (item: ScenarioListItem) => {
+    const msg =
+      item.id === "cinema_chain_v1"
+        ? `Сбросить правки CMS для «${item.title}»? Останется версия из кода.`
+        : `Удалить сценарий «${item.title}» (${item.id})? Это необратимо.`;
+    if (!window.confirm(msg)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteAdminScenario(item.id);
+      if (scenario?.id === item.id) {
+        setScenario(null);
+        setNodeId(null);
+      }
+      await loadScenarios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!user) {
@@ -359,22 +439,71 @@ export function AdminApp() {
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12 }}>
-          <div className="card">
-            {scenarios.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className="task-row"
+          <div className="card" style={{ display: "grid", gap: 10 }}>
+            <form onSubmit={(e) => void createScenario(e)} style={{ display: "grid", gap: 8 }}>
+              <div className="screen-sub" style={{ margin: 0, fontWeight: 600 }}>
+                Новый сценарий
+              </div>
+              <input
+                placeholder="id, например cafe_v1"
+                value={newScenarioId}
+                onChange={(e) => setNewScenarioId(e.target.value)}
                 style={{ width: "100%" }}
-                onClick={() => void openScenario(s.id)}
-              >
-                <span>
-                  <div className="task-title">{s.title}</div>
-                  <div className="task-sub">
-                    {s.id} · v{s.version} · {s.source}
-                  </div>
-                </span>
+              />
+              <input
+                placeholder="Название"
+                value={newScenarioTitle}
+                onChange={(e) => setNewScenarioTitle(e.target.value)}
+                style={{ width: "100%" }}
+              />
+              <button type="submit" disabled={busy || !newScenarioId.trim()} style={{ fontSize: "0.8125rem" }}>
+                Создать
               </button>
+            </form>
+            <div className="screen-sub" style={{ margin: "8px 0 0", borderTop: "1px solid rgb(255 255 255 / 0.08)", paddingTop: 8 }}>
+              В списке
+            </div>
+            {scenarios.map((s) => (
+              <div key={s.id} className="task-row" style={{ display: "flex", gap: 4, alignItems: "stretch" }}>
+                <button
+                  type="button"
+                  className="task-row"
+                  style={{ flex: 1, minWidth: 0 }}
+                  onClick={() => void openScenario(s.id)}
+                >
+                  <span>
+                    <div className="task-title">{s.title}</div>
+                    <div className="task-sub">
+                      {s.id} · v{s.version} ·{" "}
+                      {s.source === "git" ? "код + CMS" : "только CMS"}
+                    </div>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  title={
+                    s.source === "git"
+                      ? "Нет копии в CMS — только встроенный сценарий из кода"
+                      : s.id === "cinema_chain_v1"
+                        ? "Удалить правки CMS (вернётся версия из кода)"
+                        : "Удалить сценарий из CMS"
+                  }
+                  disabled={busy || s.source === "git"}
+                  onClick={() => void removeScenario(s)}
+                  style={{
+                    flexShrink: 0,
+                    fontSize: "0.75rem",
+                    color: "#f87171",
+                    background: "transparent",
+                    border: "1px solid rgb(248 113 113 / 0.35)",
+                    borderRadius: 8,
+                    padding: "0 8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
           {scenario ? (
@@ -436,6 +565,32 @@ export function AdminApp() {
               </div>
               {currentNode ? (
                 <>
+                  <div className="row-between" style={{ alignItems: "center" }}>
+                    <span className="screen-sub" style={{ margin: 0 }}>
+                      Редактируешь: {NODE_ID_HINT[nodeId!] ?? nodeId}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy || scenario.startNodeId === nodeId}
+                      title={
+                        scenario.startNodeId === nodeId
+                          ? "Сначала выбери другой стартовый шаг"
+                          : undefined
+                      }
+                      onClick={() => void removeCurrentNode()}
+                      style={{
+                        fontSize: "0.8125rem",
+                        color: "#f87171",
+                        background: "transparent",
+                        border: "1px solid rgb(248 113 113 / 0.35)",
+                        borderRadius: 8,
+                        padding: "6px 10px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Удалить шаг
+                    </button>
+                  </div>
                   <label>
                     Текст шага (что видит подросток)
                     <textarea
@@ -451,8 +606,31 @@ export function AdminApp() {
                     const endsHere = Boolean(opt.terminal || !opt.nextNodeId);
                     return (
                     <div key={`${opt.id}-${idx}`} className="card" style={{ padding: 12 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                        {opt.label || `Ответ ${idx + 1}`}
+                      <div
+                        className="row-between"
+                        style={{ fontWeight: 600, marginBottom: 8, alignItems: "center" }}
+                      >
+                        <span>{opt.label || `Ответ ${idx + 1}`}</span>
+                        <button
+                          type="button"
+                          disabled={currentNode.options.length <= 1}
+                          title={
+                            currentNode.options.length <= 1
+                              ? "Нужен хотя бы один ответ"
+                              : undefined
+                          }
+                          onClick={() => removeOption(idx)}
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "#f87171",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Удалить
+                        </button>
                       </div>
                       <div style={{ display: "grid", gap: 8, fontSize: "0.875rem" }}>
                         <label>
