@@ -1,0 +1,39 @@
+---
+description: TypeScript, React (v2/web) и Firebase Functions (functions/) для fin_brdg
+globs: "{v2/web/**,functions/**}"
+---
+
+# TypeScript / Firebase
+
+Карта слоёв и «куда класть код» — `docs/ARCHITECTURE.md`. Схема данных — `docs/generated/firestore-schema.md`.
+
+## Слои (проверяет `./scripts/verify.sh`)
+
+- Firestore и `firebase-admin` — только в `functions/`. Фронт работает с данными через `/api`.
+- `fetch` — только в `v2/web/src/api/client.ts`; экраны вызывают его функции.
+- `functions/src/domain.ts` — чистые функции, без Firebase и Express.
+
+## Фронт `v2/web/src`
+
+- Новый экран — новый файл в `screens/` + вариант `Route` в `App.tsx`.
+- Кнопки Telegram: `MainAction` (MainButton), `useBackAction` (BackButton); не скрывать MainButton через CSS.
+- Числа бюджета не хардкодить: импорт из `domain/budget.ts`.
+
+## Бэкенд `functions/src`
+
+- Маршрут в `app.ts` тонкий: разбор `req` → функция `store.ts` → JSON; ошибки — `400 { error }` по-русски.
+- Всё, кроме `/api/health` и `/api/telegram/webhook`, — через `authMiddleware`.
+- Права (роль, своя семья) проверять на сервере.
+- Правило бюджета меняется в `functions/src/domain.ts` **и** в `v2/web/src/domain/budget.ts` (пока домен не объединён).
+- Новое поле/коллекция Firestore — обновить `docs/generated/firestore-schema.md` в том же коммите.
+
+## Нельзя
+
+- Править руками `v2/web/dist/`, `functions/lib/` — это результат сборки.
+- Запускать эмуляторы без `--project demo-fin-brdg`; запускать `scripts/seed-v2-firestore.mjs` без `FIRESTORE_EMULATOR_HOST`.
+- Деплоить (`deploy-*.sh`, `firebase deploy`) без явной просьбы человека.
+- Коммитить `functions/.env`, токены, `node_modules/`.
+
+## Перед «готово»
+
+`./scripts/verify.sh` и smoke на эмуляторах (`docs/LOCAL_DEV.md`).
