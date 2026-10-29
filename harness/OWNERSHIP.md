@@ -13,6 +13,21 @@
 
 Зоны A–G (Streamlit v1) удалены вместе с v1 в T15; буквы не переиспользуем.
 
+### Подзоны J и K (для параллельных задач)
+
+Задача может владеть целой зоной (как T13: `v2/web/**` + `functions/**`) или подзоной. Две активные задачи — в разных подзонах.
+
+| Подзона | Пути | Что внутри |
+|---------|------|------------|
+| **J1. Экраны** | `v2/web/src/screens/**`, `v2/web/src/components/**`, `v2/web/src/styles/**` | вёрстка и поведение экранов |
+| **J2. Каркас фронта** | `v2/web/src/App.tsx`, `main.tsx`, `api/**`, `session/**`, `twa/**`, `telegram/**`, `v2/web/*.json`, `vite.config.ts` | роутинг, API-клиент, Telegram SDK, сборка |
+| **K1. API и бот** | `functions/src/app.ts`, `index.ts`, `telegram.ts`, `botWebhook.ts`, `inviteParam.ts` | маршруты, авторизация, webhook |
+| **K2. Данные** | `functions/src/store.ts`, `pendingInvite.ts`, `profilePhoto.ts`, `firestore.*`, `docs/generated/firestore-schema.md` | Firestore, сценарии |
+| **K3. Деплой** | `firebase.json`, `.firebaserc`, `scripts/deploy-*.sh`, `scripts/set-telegram-webhook.sh`, `functions/package*.json` | конфиг и выкладка |
+| **L. Домен** | `functions/src/domain.ts`, `v2/web/src/domain/**`, `docs/design-docs/domain-test-cases.md` | числа и правила бюджета (обе копии — одной задачей) |
+
+Новый экран обычно = J1 + одна строка в `App.tsx` (J2, минимальная правка). Новый маршрут = K1 + функция в K2.
+
 ## Mini App
 
 - UI — **`v2/web`** → `v2/web/dist`; логика и данные — **`functions/`** + Firestore.

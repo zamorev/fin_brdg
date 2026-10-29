@@ -24,7 +24,13 @@
 
 ## Структурные тесты
 
-Пока нет: `verify.sh` проверяет только типы TS. Тесты домена (Vitest) — отдельная задача; кейсы — [design-docs/domain-test-cases.md](design-docs/domain-test-cases.md).
+`./scripts/verify.sh` (без записи файлов в репо):
+
+1. typecheck `v2/web` и `functions`;
+2. сборка `v2/web` во временную папку (`dist/` не меняется);
+3. границы слоёв: нет Firebase в `v2/web`, `fetch` только в `v2/web/src/api/`, `functions/src/domain.ts` без Firebase/Express — см. [ARCHITECTURE.md](ARCHITECTURE.md).
+
+Юнит-тестов пока нет. Тесты домена (Vitest) — отдельная задача; кейсы — [design-docs/domain-test-cases.md](design-docs/domain-test-cases.md).
 
 ## Домены (оценка на хакатоне)
 
