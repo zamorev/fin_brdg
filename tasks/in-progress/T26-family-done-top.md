@@ -1,11 +1,14 @@
 ---
 id: T26
 title: «Семья» — выход сверху слева вместо «Готово» внизу
-status: backlog
+status: in-progress
 owns:
   - J1: v2/web/src/screens/FamilyScreen.tsx, v2/web/src/styles/global.css (новый класс кнопки «Назад»)
 depends-on: []
 priority: средний
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T26
+started: 2026-10-29
 ---
 
 # T26 — Выход из «Семьи» — в левом верхнем углу
