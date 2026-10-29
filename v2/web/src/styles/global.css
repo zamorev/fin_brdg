@@ -275,16 +275,17 @@ textarea {
   font-weight: 600;
 }
 
-.btn-primary-scroll {
-  width: 100%;
-  margin-top: 20px;
-  padding: 14px 16px;
+/* «← Назад» в левом верхнем углу экрана, над заголовком. */
+.screen-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -8px 0 0 -8px;
+  padding: 0 8px;
+  background: none;
   border: none;
-  border-radius: var(--fb-radius-md);
-  background: var(--fb-button);
-  color: var(--fb-button-text);
-  font-weight: 600;
-  font: inherit;
+  color: var(--fb-link);
+  font-size: 0.9375rem;
   cursor: pointer;
   touch-action: manipulation;
 }
