@@ -1,29 +1,20 @@
 #!/usr/bin/env bash
 # Agent feedback loop: run before marking a task done or opening PR.
+# Проверка типов TS без записи файлов (dist/, lib/, *.tsbuildinfo не трогаем).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PYTHON="${PYTHON:-}"
-if [[ -z "$PYTHON" ]]; then
-  if [[ -x "$ROOT/.venv/bin/python" ]]; then
-    PYTHON="$ROOT/.venv/bin/python"
-  else
-    PYTHON="python3"
-  fi
-fi
-
 echo "== fin_brdg verify =="
-echo "python: $PYTHON"
+echo "node: $(node -v)"
 
-export PYTHONPYCACHEPREFIX="$ROOT/.pycache"
-"$PYTHON" -m compileall -q app src
-
-if "$PYTHON" -m pytest --version >/dev/null 2>&1; then
-  "$PYTHON" -m pytest -q tests/
-else
-  echo "pytest not installed; run: pip install -r requirements.txt"
-  exit 1
-fi
+for dir in v2/web functions; do
+  if [[ ! -d "$dir/node_modules" ]]; then
+    echo "$dir: нет node_modules; run: (cd $dir && npm install)" >&2
+    exit 1
+  fi
+  echo "-- typecheck $dir"
+  (cd "$dir" && npx --no-install tsc --noEmit -p .)
+done
 
 echo "OK"

@@ -8,8 +8,8 @@ alwaysApply: true
 - Продукт: `docs/PRODUCT.md`. Не добавлять фичи вне MVP без явного запроса.
 - Перед кодом: активная задача в `tasks/in-progress/` или явное указание пользователя.
 - Соблюдать `harness/OWNERSHIP.md`; один PR — одна задача; коммиты `Txx: ...`; коммитить и пушить ветку по ходу работы (`harness/COORDINATION.md`).
-- Стек: Python + Streamlit + SQLite. Логика в `src/`, UI в `app/`.
-- Не коммитить `data/*.db`, `.venv`, секреты.
+- Стек: TypeScript. UI — `v2/web` (React, Vite), API и Firestore — `functions/` (Firebase Functions). Устройство: `docs/V2.md`, локальный запуск: `docs/LOCAL_DEV.md`.
+- Не коммитить `.env`, `functions/.env`, секреты.
 - Перед завершением задачи: `./scripts/verify.sh` (см. `docs/QUALITY.md`).
 - После заметного шага или перед PR: **ретро по последним 1–2 коммитам** (`git log -2`, `git show`) — краткий разбор diff и 2–5 конкретных улучшений (риски, тесты, границы слоёв, MVP); не внедрять без запроса (`harness/COORDINATION.md`).
 - Не раздувать `AGENTS.md` — детали в `docs/`.

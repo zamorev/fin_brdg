@@ -12,15 +12,11 @@
 
 ## Ручной smoke (UI)
 
-**v1 (Streamlit):**
+**Локально:** эмуляторы + браузер — [LOCAL_DEV.md](LOCAL_DEV.md) (раздел «Smoke»).
 
-```bash
-streamlit run app/main.py
-```
+**В Telegram** (кнопки, инвайты, вторая роль): prod `https://fin-brdg.web.app` через @fin_brdg_bot. Онбординг/invite — [V2.md](V2.md), задачи T11–T13.
 
-**v2 (Mini App):** сценарии из acceptance criteria задачи; prod — `https://fin-brdg.web.app` через @fin_brdg_bot. Онбординг/invite — [V2.md](V2.md), задачи T11/T12.
-
-Пройти acceptance criteria **своей** задачи из `tasks/in-progress/` или `tasks/done/` для v2.
+Пройти acceptance criteria **своей** задачи из `tasks/in-progress/`.
 
 ## Ретро по последним коммитам
 
@@ -28,16 +24,15 @@ streamlit run app/main.py
 
 ## Структурные тесты
 
-`pytest tests/test_architecture.py` — границы слоёв (domain без streamlit и т.д.).
+Пока нет: `verify.sh` проверяет только типы TS. Тесты домена (Vitest) — отдельная задача; кейсы — [design-docs/domain-test-cases.md](design-docs/domain-test-cases.md).
 
 ## Домены (оценка на хакатоне)
 
 | Домен | Слой | Цель к демо |
 |-------|------|-------------|
-| Каркас / роли | app | T01 |
-| Домен | src/domain | T02 |
-| Квесты | src/quests | T04–T05 |
-| Персистентность | src/db | T08 |
-| Родитель | app/pages parent | T07, T09 |
+| Mini App (экраны, TWA) | `v2/web/src` | T11–T13 |
+| API, онбординг, инвайты | `functions/src` | T11–T13 |
+| Домен (бюджет, запросы) | `functions/src/domain.ts`, `v2/web/src/domain/` | — |
+| Данные | Firestore через `functions/` | T11–T12 |
 
 Обновляйте чеклисты в файлах задач, не в этом документе.

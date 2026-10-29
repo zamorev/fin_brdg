@@ -6,14 +6,15 @@
 
 ## Проект в одном абзаце
 
-Веб-прототип: **v1** — Streamlit + SQLite (`app/`, `src/`); **prod Telegram** — v2 TWA (`v2/web` + `functions/`). Спека: [docs/PRODUCT.md](docs/PRODUCT.md), v2: [docs/V2.md](docs/V2.md).
+Telegram Mini App: подросток — квесты и бюджет; родитель — правила и решения по запросам. UI — `v2/web` (React + Vite, TypeScript), API — `functions/` (Firebase Functions, TypeScript), данные — Firestore. Спека: [docs/PRODUCT.md](docs/PRODUCT.md), устройство: [docs/V2.md](docs/V2.md).
 
 ## Setup
 
+Локальный запуск на эмуляторах Firebase (без Telegram и prod): [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-streamlit run app/main.py
+npm install && (cd functions && npm install) && (cd v2/web && npm install)
+./scripts/verify.sh
 ```
 
 ## Рабочий цикл (ReAct)
@@ -31,18 +32,17 @@ streamlit run app/main.py
 |--------|----------|
 | Что строим? | [docs/product-specs/index.md](docs/product-specs/index.md) |
 | Куда класть код? | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Telegram Mini App (prod) | [docs/V2.md](docs/V2.md) — **`v2/web`**, не `web/` |
+| Как устроено приложение? | [docs/V2.md](docs/V2.md) — `v2/web` + `functions/` |
+| Как запустить локально? | [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) |
 | Можно ли так? | [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) |
 | Как не конфликтовать? | [harness/OWNERSHIP.md](harness/OWNERSHIP.md) |
-| Схема БД | [docs/generated/db-schema.md](docs/generated/db-schema.md) (после T08) |
+| Данные (Firestore) | [docs/V2.md](docs/V2.md) — «Модель аккаунтов» |
 
 ## Инварианты (кратко)
 
-- **v1:** логика в `src/`, UI в `app/`; domain/quests/db **без** Streamlit.
-- **v2 prod:** UI `v2/web`, API `functions/` — [docs/V2.md](docs/V2.md); не править `web/` для Mini App.
-- SQL v1 — `src/db/`; Firestore v2 — `functions/`.
-- Константы бюджета v1 — `src/domain/`.
-- Не коммитить `.env`, `data/*.db`, `.venv`.
+- UI — `v2/web`, API и Firestore — только `functions/` (фронт ходит в базу через `/api`).
+- Константы и проверки бюджета — `functions/src/domain.ts` (копия во фронте: `v2/web/src/domain/budget.ts`).
+- Не коммитить `.env`, `functions/.env`, `node_modules/`.
 - MVP-запреты: банк, реальные карты, trust-score, авто-лимиты — см. core-beliefs.
 
 ## Cursor

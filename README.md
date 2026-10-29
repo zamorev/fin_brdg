@@ -5,20 +5,14 @@
 
 ## Быстрый старт
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # опционально: локальные секреты (см. TELEGRAM_BOT_TOKEN)
-streamlit run app/main.py
-```
-
-Telegram Mini App v2 (React TWA + Firebase): [`docs/V2.md`](docs/V2.md). Legacy static shell: [`docs/FIREBASE_HOSTING.md`](docs/FIREBASE_HOSTING.md).
+Telegram Mini App (React + Firebase): устройство — [`docs/V2.md`](docs/V2.md), локальный запуск на эмуляторах — [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md).
 
 ```bash
-chmod +x scripts/deploy-v2.sh
-./scripts/deploy-v2.sh
+npm install && (cd functions && npm install) && (cd v2/web && npm install)
+./scripts/verify.sh
 ```
+
+Деплой в prod (нужен доступ к проекту Firebase `fin-brdg`): [`docs/FIREBASE_HOSTING.md`](docs/FIREBASE_HOSTING.md), `./scripts/deploy-v2.sh`.
 
 ## Команда и агенты
 
@@ -28,10 +22,10 @@ chmod +x scripts/deploy-v2.sh
 |----------|----------|
 | [`AGENTS.md`](AGENTS.md) | Любой coding-агент |
 | [`harness/README.md`](harness/README.md) | Люди: как координироваться |
-| [`tasks/backlog/`](tasks/backlog/) | Очередь задач T01–T10 |
+| [`tasks/backlog/`](tasks/backlog/) | Очередь задач |
 
 Заявить задачу: `./scripts/claim-task.sh T01 your-nick` (см. `harness/COORDINATION.md`).
 
 ## Структура
 
-`docs/ARCHITECTURE.md` — слои `app/` + `src/` + SQLite.
+`v2/web/` — Mini App (UI), `functions/` — API и Firestore. Подробно: [`docs/V2.md`](docs/V2.md).
