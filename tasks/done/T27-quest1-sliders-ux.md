@@ -1,7 +1,7 @@
 ---
 id: T27
 title: Квест 1 — ползунки, минимумы, статус распределения, статичная кнопка
-status: in-progress
+status: done
 owns:
   - J1: v2/web/src/screens/QuestBudget.tsx, v2/web/src/components/MainAction.tsx, v2/web/src/styles/global.css (ползунки, цвет перебора)
   - docs/exec-plans/active/T27-quest1-plan.md (новый, фаза A)

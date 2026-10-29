@@ -1,6 +1,6 @@
 # T27 — план: квест «Неделя на 1 500 ₽»
 
-Задача: [tasks/in-progress/T27-quest1-sliders-ux.md](../../../tasks/in-progress/T27-quest1-sliders-ux.md).
+Задача: [tasks/done/T27-quest1-sliders-ux.md](../../../tasks/done/T27-quest1-sliders-ux.md).
 
 ## Решения владельца (2026-10-29)
 
