@@ -1,7 +1,7 @@
 ---
 id: T16
 title: Harness под TypeScript + Firebase (архитектура, правила, verify)
-status: in-progress
+status: done
 owns:
   - docs/ARCHITECTURE.md
   - docs/generated/**
