@@ -1,7 +1,10 @@
 ---
 id: T18
 title: Hotfix — экраны закрываются сразу после открытия (BackButton)
-status: backlog
+status: in-progress
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T18
+started: 2026-10-29
 owns:
   - J2: v2/web/src/twa/**, v2/web/src/components/useBackAction.ts
   - docs/QUALITY.md
