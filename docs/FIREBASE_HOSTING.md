@@ -14,12 +14,11 @@
 |------|------------|
 | `firebase.json`, `.firebaserc` | Hosting → **`v2/web/dist`**, rewrites `/api/**` → Functions |
 | **`v2/web/`** | **Prod** Telegram Mini App (React) |
-| `web/` | Legacy-заглушка, **не** деплоится |
 | `functions/` | API v2 (onboarding, family, квесты) |
 | `scripts/deploy-firebase-hosting.sh` | Сборка v2 + deploy hosting |
 | `scripts/deploy-v2.sh` | Сборка v2 + functions + rules |
 
-Подробно: [V2.md](V2.md). Streamlit (`app/main.py`) на Hosting **не** крутится.
+Подробно: [V2.md](V2.md).
 
 ## Первый деплой (локально)
 

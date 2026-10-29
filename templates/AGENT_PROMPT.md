@@ -13,7 +13,7 @@
 
 - Выполняй **только** назначенную задачу.
 - Не расширяй MVP (см. «Что не входит в MVP» в `docs/PRODUCT.md`).
-- Стек: **Python, Streamlit, SQLite**; суммы условные; без банковской интеграции.
+- Стек: **TypeScript** — Mini App `v2/web` (React, Vite), API `functions/` (Firebase Functions), Firestore; суммы условные; без банковской интеграции.
 
 ## Координация
 
@@ -24,9 +24,9 @@
 
 ## Качество
 
-- Логика бюджета и проверок — в `src/`, UI — в `app/`.
-- Перед завершением: `./scripts/verify.sh` и `streamlit run app/main.py`, пройти acceptance criteria.
-- Не коммить секреты, `.env`, бинарные дампы БД (кроме явных fixture в `tests/`).
+- Логика бюджета и проверок — в `functions/src/domain.ts`, данные — в `functions/`, UI — в `v2/web`.
+- Перед завершением: `./scripts/verify.sh` и smoke на эмуляторах (`docs/LOCAL_DEV.md`), пройти acceptance criteria.
+- Не коммить секреты, `.env`, `functions/.env`.
 
 ## Ретро по коммитам
 
