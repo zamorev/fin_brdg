@@ -34,8 +34,8 @@
 | [exec-plans/active/README.md](exec-plans/active/README.md) | Крупные эпики (если есть) |
 | [../tasks/README.md](../tasks/README.md) | Формат задач |
 
-## Сгенерированное (позже)
+## Сгенерированное
 
 | Документ | Когда читать |
 |----------|----------------|
-| [generated/db-schema.md](generated/db-schema.md) | После T08, работа с БД |
+| [generated/firestore-schema.md](generated/firestore-schema.md) | Работа с данными Firestore |
