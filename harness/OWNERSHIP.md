@@ -31,7 +31,7 @@
 ## Mini App
 
 - UI — **`v2/web`** → `v2/web/dist`; логика и данные — **`functions/`** + Firestore.
-Перед правками invite/онбординга/аватарок читать [docs/V2.md](../docs/V2.md), [T11](../tasks/done/T11-v2-family-invites-twa.md), [T12](../tasks/done/T12-v2-onboarding-users-avatars.md). **Активно: [T13](../tasks/in-progress/T13-v2-invite-bot-webhook.md)** — не дублировать webhook/pendingInvites.
+Перед правками invite/онбординга/аватарок читать [docs/V2.md](../docs/V2.md), [T11](../tasks/done/T11-v2-family-invites-twa.md), [T12](../tasks/done/T12-v2-onboarding-users-avatars.md), [T13](../tasks/done/T13-v2-invite-bot-webhook.md). Invite/webhook — не дублировать без новой задачи.
 
 ## Правила
 
@@ -44,4 +44,4 @@
 
 ## Параллельные пары
 
-Пока T13 держит `v2/web/**` и `functions/**` целиком, параллельные задачи в коде не запускаем. Пары — при нарезке новых задач.
+**Активно:** T17 — сценарные квесты ([PR #1](https://github.com/zamorev/fin_brdg/pull/1)); invite/pending — только по отдельной задаче.
