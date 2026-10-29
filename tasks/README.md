@@ -11,6 +11,7 @@
 | `status` | да | `backlog` \| `in-progress` \| `done` |
 | `owns` | да | Зоны из `harness/OWNERSHIP.md` или пути |
 | `depends-on` | нет | Список id, например `[T02]` |
+| `priority` | нет | `блокер` \| `высокий` \| `средний` \| `низкий` |
 | `claimed-by` | при claim | Ник участника |
 | `branch` | при claim | Имя ветки |
 
@@ -19,6 +20,8 @@
 - **Description**
 - **Acceptance Criteria** (чеклист)
 - **Notes** (опционально)
+
+Текущая очередь и порядок задач: [docs/exec-plans/active/epic-dod.md](../docs/exec-plans/active/epic-dod.md).
 
 ## Перемещение
 

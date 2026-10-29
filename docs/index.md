@@ -31,7 +31,8 @@
 | [../harness/COORDINATION.md](../harness/COORDINATION.md) | Ветки, claim, merge |
 | [../harness/OWNERSHIP.md](../harness/OWNERSHIP.md) | Перед правкой файлов |
 | [../harness/FRAMEWORK.md](../harness/FRAMEWORK.md) | Зачем устроено так |
-| [exec-plans/active/README.md](exec-plans/active/README.md) | Крупные эпики (если есть) |
+| [exec-plans/active/epic-dod.md](exec-plans/active/epic-dod.md) | **Текущая очередь T18–T24 до DoD**, что параллелить |
+| [exec-plans/active/README.md](exec-plans/active/README.md) | Формат эпиков |
 | [../tasks/README.md](../tasks/README.md) | Формат задач |
 
 ## Сгенерированное
