@@ -45,5 +45,5 @@ started: 2026-10-29
 ## Notes
 
 - Линейный квест 2 (`UnplannedPurchase`) пока параллельно; миграция — фаза E.
-- Merge в `main` после закрытия T13 (общая зона `functions/**`, `v2/web/**`).
+- T13 закрыта (2026-10-29); PR #1 можно мержить после merge `agent/pavel/T13-close` в `main`.
 - `./scripts/verify.sh`; functions: `cd functions && npm test`.
