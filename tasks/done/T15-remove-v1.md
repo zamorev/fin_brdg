@@ -1,7 +1,7 @@
 ---
 id: T15
 title: Удалить v1 (Streamlit) и legacy-заглушку web/
-status: in-progress
+status: done
 owns:
   - app/**
   - src/**
