@@ -9,6 +9,7 @@
   --fb-accent: #f5c451;
   --fb-success: #56ba8a;
   --fb-warning: #fbbf24;
+  --fb-danger: #f87171;
   --fb-radius-lg: 20px;
   --fb-radius-md: 14px;
   --tg-content-safe-area-inset-top: 0px;
@@ -208,9 +209,75 @@ textarea {
   margin-bottom: 8px;
 }
 
+/* Касания ловит обёртка (QuestBudget): тап по дорожке переносит бегунок, жест не уходит в прокрутку. */
+.slider-track {
+  touch-action: none;
+  cursor: pointer;
+}
+
 .slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
   width: 100%;
-  accent-color: var(--fb-button);
+  height: 36px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(139 149 165 / 0.35);
+  background: color-mix(in srgb, var(--fb-hint) 35%, transparent);
+}
+
+.slider-row input[type="range"]::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(139 149 165 / 0.35);
+  background: color-mix(in srgb, var(--fb-hint) 35%, transparent);
+}
+
+/* Размер бегунка = THUMB_PX в QuestBudget.tsx. */
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin-top: -10px;
+  border-radius: 50%;
+  border: 3px solid var(--fb-secondary);
+  background: var(--fb-button);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.slider-row input[type="range"]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--fb-secondary);
+  background: var(--fb-button);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.slider-row input[type="range"]:focus-visible {
+  outline: none;
+}
+
+.slider-row input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--fb-link);
+  outline-offset: 2px;
+}
+
+.budget-status {
+  margin: 4px 0 0;
+  color: var(--fb-hint);
+  font-size: 0.8125rem;
+  text-align: right;
 }
 
 .radio-list {
@@ -275,16 +342,17 @@ textarea {
   font-weight: 600;
 }
 
-.btn-primary-scroll {
-  width: 100%;
-  margin-top: 20px;
-  padding: 14px 16px;
+/* «← Назад» в левом верхнем углу экрана, над заголовком. */
+.screen-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -8px 0 0 -8px;
+  padding: 0 8px;
+  background: none;
   border: none;
-  border-radius: var(--fb-radius-md);
-  background: var(--fb-button);
-  color: var(--fb-button-text);
-  font-weight: 600;
-  font: inherit;
+  color: var(--fb-link);
+  font-size: 0.9375rem;
   cursor: pointer;
   touch-action: manipulation;
 }
