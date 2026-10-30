@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "npm run build && node --test lib/scenarioEngine.test.js"
+    "test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test $(find .test-build -name '*.test.js'); s=$?; rm -rf .test-build; exit $s"
   },
   "dependencies": {
     "express": "^4.21.2",

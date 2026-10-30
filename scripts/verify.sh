@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Agent feedback loop: run before marking a task done or opening PR.
-# Типы, сборка фронта во временную папку и границы слоёв (docs/ARCHITECTURE.md).
+# Типы, тесты functions, сборка фронта во временную папку и границы слоёв (docs/ARCHITECTURE.md).
 # Файлы в репозитории не меняет: dist/, lib/, *.tsbuildinfo не трогаем.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,6 +17,17 @@ for dir in v2/web functions; do
   echo "-- typecheck $dir"
   (cd "$dir" && npx --no-install tsc --noEmit -p .)
 done
+
+echo "-- tests functions (сборка во временную functions/.test-build, удаляется)"
+TEST_LOG="$(mktemp)"
+(cd functions && npm test --silent > "$TEST_LOG" 2>&1) || {
+  cat "$TEST_LOG" >&2
+  rm -f "$TEST_LOG"
+  echo "Тесты functions упали (см. вывод выше)." >&2
+  exit 1
+}
+grep -E '^# (tests|pass|fail) ' "$TEST_LOG" | sed 's/^# /  /'
+rm -f "$TEST_LOG"
 
 echo "-- build v2/web (во временную папку)"
 OUT="$(mktemp -d)"
