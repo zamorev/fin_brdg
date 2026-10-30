@@ -19,3 +19,6 @@ functions/.env
 .pycache/
 .pytest_cache/
 __pycache__/
+
+# Временная сборка тестов functions (npm test удаляет её сам)
+functions/.test-build/
