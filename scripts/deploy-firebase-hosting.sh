@@ -3,17 +3,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+# shellcheck source=firebase-cli.sh
+source "$ROOT/scripts/firebase-cli.sh"
 
-if ! command -v firebase >/dev/null 2>&1; then
-  if [[ -x "$ROOT/node_modules/.bin/firebase" ]]; then
-    FIREBASE="$ROOT/node_modules/.bin/firebase"
-  else
-    echo "firebase CLI not found. Run: npm install && npx firebase login"
-    exit 1
-  fi
-else
-  FIREBASE="firebase"
-fi
+FIREBASE="$(firebase_cli "$ROOT")"
+require_firebase_login "$FIREBASE"
 
 echo "== build v2 web =="
 export APP_BUILD_ID="${APP_BUILD_ID:-$("$ROOT/scripts/app-build-id.sh")}"
