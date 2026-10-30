@@ -1,7 +1,7 @@
 ---
 id: T21
 title: Тесты домена и расхождения X1–X2
-status: in-progress
+status: done
 owns:
   - L: functions/src/domain.ts, functions/src/domain.test.ts (новый), v2/web/src/domain/budget.ts, docs/design-docs/domain-test-cases.md
   - K3 (минимально): functions/package.json — скрипт test
