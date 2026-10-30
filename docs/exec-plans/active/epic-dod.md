@@ -23,7 +23,7 @@
 | [T18](../../../tasks/done/T18-hotfix-back-button.md) | Hotfix: экраны закрываются сразу | J2 (`twa/`) | — | ✅ done |
 | [T19](../../../tasks/done/T19-local-dev-parent-demo.md) | Безопасный локальный запуск, вход за родителя, демо-семья | K3 (скрипты), J2 | T18 | высокий |
 | [T20](../../../tasks/backlog/T20-parent-dashboard.md) | Дашборд родителя, экран «Договорённости» | J1 (новые экраны), J2 мин. | T18, T19 | высокий |
-| [T21](../../../tasks/backlog/T21-domain-tests.md) | Тесты домена, X1–X2 | L, `verify.sh` | — | средний |
+| [T21](../../../tasks/in-progress/T21-domain-tests.md) | Тесты домена, X1–X2 | L, `verify.sh` | — | средний |
 | [T22](../../../tasks/backlog/T22-budget-rules-vs-balance.md) | Правила ≠ остаток, дефицит, тексты сценария | L, K2, K2b, J1 | T20, T21 | высокий |
 | [T23](../../../tasks/backlog/T23-cleanup-after-t13-t17.md) | Бренд, документы, артефакты сборки из git | docs, `.gitignore`, J1 (шапка) | — | средний |
 | [T24](../../../tasks/backlog/T24-dod-acceptance.md) | Приёмка DoD в Telegram, демо, запись | docs | все | высокий |

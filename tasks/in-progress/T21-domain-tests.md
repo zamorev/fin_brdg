@@ -1,13 +1,16 @@
 ---
 id: T21
 title: Тесты домена и расхождения X1–X2
-status: backlog
+status: in-progress
 owns:
   - L: functions/src/domain.ts, functions/src/domain.test.ts (новый), v2/web/src/domain/budget.ts, docs/design-docs/domain-test-cases.md
   - K3 (минимально): functions/package.json — скрипт test
   - scripts/verify.sh
 depends-on: []
 priority: средний
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T21
+started: 2026-10-30
 ---
 
 # T21 — Домен под тестами
