@@ -1,3 +1,4 @@
+export const CURRENCY = "₽";
 export const WEEKLY_BUDGET = 1500;
 
 export type CategoryKey =
@@ -32,26 +33,41 @@ export const CATEGORY_ORDER: CategoryKey[] = [
   "reserve",
 ];
 
+export const CATEGORY_LABELS: Record<CategoryKey, string> = {
+  transport: "Транспорт",
+  food: "Обеды и перекусы",
+  entertainment: "Развлечения",
+  savings: "Накопления на цель",
+  reserve: "Резерв",
+};
+
+export function formatRub(amount: number): string {
+  return `${amount.toLocaleString("ru-RU")} ${CURRENCY}`;
+}
+
 export function total(a: Allocation): number {
   return CATEGORY_ORDER.reduce((s, k) => s + a[k], 0);
 }
 
+// Тексты совпадают с v2/web/src/domain/budget.ts (проверяет domain.test.ts).
 export function validateAllocation(a: Allocation, weeklyBudget = WEEKLY_BUDGET): string[] {
   const errors: string[] = [];
   const sum = total(a);
   if (sum !== weeklyBudget) {
-    const diff = Math.abs(sum - weeklyBudget);
+    const diff = sum - weeklyBudget;
+    const direction = diff > 0 ? "больше" : "меньше";
     errors.push(
-      sum > weeklyBudget
-        ? `На ${diff} ₽ больше, чем ${weeklyBudget} ₽ на неделю — убери лишнее`
-        : `Осталось распределить ещё ${diff} ₽`,
+      `Сумма должна быть ${formatRub(weeklyBudget)}: сейчас на ${formatRub(Math.abs(diff))} ${direction}`,
     );
   }
   for (const key of CATEGORY_ORDER) {
-    if (a[key] < 0) errors.push(`${key}: сумма не может быть отрицательной`);
+    if (a[key] < 0) {
+      errors.push(`${CATEGORY_LABELS[key]}: сумма не может быть отрицательной`);
+      continue;
+    }
     const min = CATEGORY_MINIMUMS[key];
     if (min !== undefined && a[key] < min) {
-      errors.push(`${key}: нужно не меньше ${min} ₽`);
+      errors.push(`${CATEGORY_LABELS[key]}: нужно не меньше ${formatRub(min)}`);
     }
   }
   return errors;
@@ -104,7 +120,7 @@ export function validateRuleChange(
   if (!explanation.trim()) errors.push("Расскажи, зачем тебе это важно");
   if (proposed <= 0) errors.push("Укажи сумму больше нуля");
   else if (proposed > WEEKLY_BUDGET)
-    errors.push(`На неделю не больше ${WEEKLY_BUDGET} ₽ — это учебный бюджет`);
+    errors.push(`На неделю не больше ${formatRub(WEEKLY_BUDGET)} — это учебный бюджет`);
   else if (proposed === current) errors.push("Нужна другая сумма, не как сейчас");
   return errors;
 }
