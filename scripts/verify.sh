@@ -26,7 +26,7 @@ TEST_LOG="$(mktemp)"
   echo "Тесты functions упали (см. вывод выше)." >&2
   exit 1
 }
-grep -E '^# (tests|pass|fail) ' "$TEST_LOG" | sed 's/^# /  /'
+grep -E 'ℹ (tests|pass|fail) ' "$TEST_LOG" | sed 's/^ℹ /  /' || true
 rm -f "$TEST_LOG"
 
 echo "-- build v2/web (во временную папку)"

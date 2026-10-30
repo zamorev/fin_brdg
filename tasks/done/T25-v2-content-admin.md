@@ -1,7 +1,7 @@
 ---
 id: T25
 title: v2 — тестовая админка CMS (контент + сценарии)
-status: in-progress
+status: done
 owns:
   - K1: functions/src/adminRouter.ts, functions/src/adminAuth.ts, functions/src/app.ts
   - K2: functions/src/cms/**, docs/generated/firestore-schema.md
@@ -13,6 +13,7 @@ depends-on: [T17]
 claimed-by: pavel
 branch: agent/pavel/T25
 started: 2026-10-29
+completed: 2026-10-30
 ---
 
 # T25 — Админка контента v2
@@ -23,3 +24,9 @@ started: 2026-10-29
 - [x] 5 логинов из `ADMIN_USERS`, cookie-сессия
 - [x] Firestore `cmsMessages`, `cmsScenarios`; runtime + `GET /api/content/strings`
 - [x] `./scripts/verify.sh`
+
+## Notes
+
+- Prod: https://fin-brdg.web.app/admin/ — таблица сценариев, drawer, списания по категориям бюджета.
+- Functions runtime **Node 22** (Firebase с 2026-10-30).
+- Не в scope MVP: все экраны Mini App на `t()`; список квестов у подростка только `cinema_chain_v1`.
