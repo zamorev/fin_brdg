@@ -1,7 +1,7 @@
 ---
 id: T23
 title: Хвосты после T13/T17 — бренд, документы, артефакты сборки
-status: in-progress
+status: done
 owns:
   - J2 (одна строка): v2/web/src/copy/defaults.ts — дефолт `ui.teen.levelLabel` (шапка подростка)
   - K2 (одна строка): functions/src/cms/catalog.ts — тот же ключ в каталоге CMS
