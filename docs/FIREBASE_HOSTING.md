@@ -46,9 +46,9 @@ chmod +x scripts/deploy-firebase-hosting.sh
 
 Подробнее тексты: [TELEGRAM_BOT.md](TELEGRAM_BOT.md).
 
-## Firebase Web SDK (опционально)
+## Firebase Web SDK
 
-Сниппет из консоли (`initializeApp`, Analytics) нужен только если фронт использует Firestore/Auth. Для одного Hosting он не обязателен. Шаблон полей — `web/js/firebase.config.example.js`; значения держите локально, не коммитьте лишнее.
+Во фронте не используется: `v2/web` ходит к данным только через `/api` (Functions), `./scripts/verify.sh` это проверяет. Сниппет `initializeApp` из консоли Firebase не нужен.
 
 ## Локальная проверка статики
 
