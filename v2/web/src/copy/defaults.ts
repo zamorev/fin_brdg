@@ -7,7 +7,7 @@ export const COPY_DEFAULTS: Record<string, string> = {
   "ui.parent.home.title": "Fin Bridge",
   "ui.parent.home.sub":
     "Когда подросток предложит новое правило — увидишь его здесь, со своего Telegram.",
-  "ui.teen.levelLabel": "Level Up",
+  "ui.teen.levelLabel": "Fin Bridge",
   "ui.teen.roleSuffix": "подросток",
   "ui.teen.weeklyBudgetLabel": "бюджет на эту неделю",
   "ui.teen.tasksHeading": "Задания",

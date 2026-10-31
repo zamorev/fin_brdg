@@ -109,8 +109,8 @@ export const MESSAGE_CATALOG: CatalogEntry[] = [
   {
     key: "ui.teen.levelLabel",
     group: "Mini App",
-    label: "Level Up",
-    defaultText: "Level Up",
+    label: "Подросток: заголовок",
+    defaultText: "Fin Bridge",
   },
   {
     key: "ui.teen.roleSuffix",
