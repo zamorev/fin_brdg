@@ -22,16 +22,20 @@
 
 ## Первый деплой (локально)
 
-```bash
-# CLI (один из вариантов)
-npm install -g firebase-tools
-# или из корня репо:
-npm install
+Нужен доступ Google-аккаунта к проекту `fin-brdg` (выдаёт владелец). Глобальный `firebase` не нужен — CLI берётся из `node_modules` корня репо.
 
-firebase login
-chmod +x scripts/deploy-firebase-hosting.sh
-./scripts/deploy-firebase-hosting.sh
+```bash
+# из корня репо, один раз (или после «credentials are no longer valid»)
+npm install
+npx firebase login --reauth
+
+# из свежего чистого main
+git checkout main && git pull
+./scripts/deploy-firebase-hosting.sh   # только v2/web
+./scripts/deploy-v2.sh                 # web + functions + Firestore rules/indexes
 ```
+
+Скрипты сами собирают `v2/web/dist` и `functions/lib` (в git их нет) и проверяют вход в Firebase. Для `deploy-v2.sh` нужен prod-`functions/.env` (`TELEGRAM_BOT_TOKEN`, `ADMIN_USERS`, `ADMIN_SESSION_SECRET`) — см. [V2.md](V2.md#деплой).
 
 Если в консоли Firebase ещё нет **Hosting** default site: Build → Hosting → Get started (или `firebase init hosting` уже привязан к `fin-brdg`).
 
