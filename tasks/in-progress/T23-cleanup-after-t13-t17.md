@@ -32,13 +32,20 @@ started: 2026-10-31
 
 ## Acceptance Criteria
 
-- [ ] Шапка подростка — «Fin Bridge» (как на главной родителя)
-- [ ] `V2.md`, `v2/README.md` — без упоминаний v1 / `web/`; таблица задач `V2.md` не сломана
-- [ ] `firestore-schema.md`: `scenarioRuns` — поля по `functions/src/scenarioRuns.ts` (`scenarioId`, `scenarioVersion`, `familyId`, `teenTelegramId`, `status`, `currentNodeId`, `stepStatus`, `readyAt`, `notifiedAt`, `history`), индексы из `firestore.indexes.json`
-- [ ] `.gitignore` без `web/js/config.local.js`
-- [ ] **По согласованию с Павлом:** `functions/lib/`, `v2/web/dist/`, `*.tsbuildinfo` — `git rm --cached` + в `.gitignore`; проверено, что `./scripts/deploy-v2.sh` и `deploy-firebase-hosting.sh` собирают с нуля (сухой прогон сборки без `firebase deploy`)
-- [ ] В [docs/LOCAL_DEV.md](../../docs/LOCAL_DEV.md) убрано предупреждение «`dist/` в git, не запускай build»
-- [ ] `./scripts/verify.sh` OK; smoke: главная подростка с новой шапкой
+- [x] Шапка подростка — «Fin Bridge» (как на главной родителя)
+- [x] `V2.md`, `v2/README.md` — без упоминаний v1 / `web/`; таблица задач `V2.md` не сломана
+- [x] `firestore-schema.md`: `scenarioRuns` — поля по `functions/src/scenarioRuns.ts` (`scenarioId`, `scenarioVersion`, `familyId`, `teenTelegramId`, `status`, `currentNodeId`, `stepStatus`, `readyAt`, `notifiedAt`, `history`), индексы из `firestore.indexes.json`
+- [x] `.gitignore` без `web/js/config.local.js`
+- [x] **По согласованию с Павлом:** `functions/lib/`, `v2/web/dist/`, `*.tsbuildinfo` — `git rm --cached` + в `.gitignore`; проверено, что `./scripts/deploy-v2.sh` и `deploy-firebase-hosting.sh` собирают с нуля (сухой прогон сборки без `firebase deploy`)
+- [x] В [docs/LOCAL_DEV.md](../../docs/LOCAL_DEV.md) убрано предупреждение «`dist/` в git, не запускай build»
+- [x] `./scripts/verify.sh` OK; smoke: главная подростка с новой шапкой
+
+## Итоги (2026-10-31)
+
+- Шапка: дефолт `ui.teen.levelLabel` = «Fin Bridge» в `copy/defaults.ts` и `cms/catalog.ts` (подпись в админке — «Подросток: заголовок»). В prod CMS значение уже было исправлено вручную.
+- Сборка: 56 файлов сняты с учёта (`git rm --cached`). Сухой прогон шагов `deploy-v2.sh` / `deploy-firebase-hosting.sh` с удалёнными `dist/` и `lib/`: `npm ci` + `build` создают `v2/web/dist` (7 файлов) и `functions/lib` (23 `.js`), `git status` чистый.
+- После `git pull` у участников исчезнут локальные `v2/web/dist/` и `functions/lib/` — пересоберутся при деплое / запуске эмулятора. Ветки, где менялась сборка, при merge получат конфликт modify/delete — удалить файлы сборки.
+- `./scripts/verify.sh` OK; smoke на эмуляторах (демо-семья, подросток `100001`): главная — «Fin Bridge», консоль без ошибок.
 
 ## Notes
 
