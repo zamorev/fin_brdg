@@ -53,7 +53,8 @@ chmod +x scripts/deploy-firebase-hosting.sh
 ## Локальная проверка статики
 
 ```bash
-npx firebase emulators:start --only hosting
+npm --prefix v2/web run build   # dist/ не в git
+npx firebase emulators:start --only hosting --project demo-fin-brdg
 ```
 
 Откройте URL эмулятора; без Telegram клиента увидите заглушку и подсказку открыть бота.
