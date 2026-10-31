@@ -142,5 +142,4 @@ node scripts/seed-demo-family.mjs
 
 - ⚠️ `scripts/seed-v2-firestore.mjs` по умолчанию пишет в эмулятор; prod — только `--prod` с вводом имени проекта. Без нужды не используй `--prod`.
 - Эмулятор, запущенный **без** `--project demo-fin-brdg`, берёт `fin-brdg` из `.firebaserc` — API будет на другом пути, а Firestore без эмулятора уйдёт в prod. Скрипт запуска отказывается работать с таким эмулятором на `:5001`.
-- **Не запускай `npm run build` в `v2/web` без нужды** — `v2/web/dist/` в git, сборка меняет файлы.
 - Telegram-функции (MainButton, BackButton, тема, share-ссылка, invite через бота) в браузере не работают — это нормально. Invite между двумя аккаунтами проверяй в Telegram.

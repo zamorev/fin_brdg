@@ -5,7 +5,6 @@
 .firebase/
 node_modules/
 .local/
-web/js/config.local.js
 functions/.env
 
 # Локальный конфиг превью Claude Code
@@ -22,3 +21,8 @@ __pycache__/
 
 # Временная сборка тестов functions (npm test удаляет её сам)
 functions/.test-build/
+
+# Результат сборки (T23): собирают deploy-скрипты, в git не храним
+functions/lib/
+v2/web/dist/
+*.tsbuildinfo

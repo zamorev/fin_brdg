@@ -51,7 +51,7 @@ Telegram Bot API ──webhook──▶ /api/telegram/webhook → botWebhook.ts 
 | `botWebhook.ts`, `inviteParam.ts`, `pendingInvite.ts` | Бот: `/start inv_…` → `pendingInvites` → join при следующем `/api/me` |
 | `profilePhoto.ts` | Аватарки через Bot API, отдача через `/api/avatar/:id` |
 
-`functions/lib/` и `v2/web/dist/` — результат сборки. Руками не править.
+`functions/lib/` и `v2/web/dist/` — результат сборки, в git не хранятся (`.gitignore`): их собирают `scripts/deploy-*.sh` перед выкладкой.
 
 ## Правила слоёв
 

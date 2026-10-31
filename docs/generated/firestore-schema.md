@@ -1,7 +1,7 @@
 # Firestore — схема данных
 
-**Источник правды — типы в коде** (`functions/src/store.ts`: `UserDoc`, `FamilyDoc`, `RequestDoc`; `functions/src/pendingInvite.ts`). Меняешь тип или коллекцию — обнови этот файл в том же коммите.
-Сверено с кодом: 2026-10-29 (T16).
+**Источник правды — типы в коде** (`functions/src/store.ts`: `UserDoc`, `FamilyDoc`, `RequestDoc`; `functions/src/pendingInvite.ts`; `functions/src/scenarioRuns.ts`: `ScenarioRunDoc`). Меняешь тип или коллекцию — обнови этот файл в том же коммите.
+Сверено с кодом: 2026-10-29 (T16); `scenarioRuns` — 2026-10-31 (T23).
 
 Доступ только из `functions/` (Admin SDK). `firestore.rules` запрещают клиентам любое чтение и запись.
 
@@ -81,6 +81,32 @@
 
 Переопределение сценарного квеста (граф узлов). Поля совпадают с `ScenarioDefinition` в коде + `updatedAt`, `updatedBy`. Если документа нет — fallback на git (`functions/src/scenarios/`).
 
-## `scenarioRuns/{id}`
+## `scenarioRuns/{auto-id}` (T17)
 
-См. [product-specs/scenario-quests.md](../product-specs/scenario-quests.md).
+Одно прохождение сценарного квеста подростком. Тип — `ScenarioRunDoc` в `functions/src/scenarioRuns.ts`. Механика: [product-specs/scenario-quests.md](../product-specs/scenario-quests.md).
+
+| Поле | Тип | Смысл |
+|------|-----|-------|
+| `scenarioId` | string | id сценария (`cinema_chain_v1`); граф — `cmsScenarios/{scenarioId}` или `functions/src/scenarios/` |
+| `scenarioVersion` | number | версия сценария на момент старта |
+| `familyId` | string | id в `families`; эффекты ответов меняют `allocation` этой семьи |
+| `teenTelegramId` | number | подросток, который проходит квест |
+| `status` | `"active"` \| `"completed"` \| `"cancelled"` | `cancelled` в типе есть, код его пока не ставит |
+| `currentNodeId` | string | текущий шаг (узел графа) |
+| `stepStatus` | `"ready"` \| `"pending"` | `pending` — шаг ещё закрыт таймером, `ready` — можно отвечать |
+| `readyAt` | Timestamp | когда шаг откроется; scheduler переводит `pending` → `ready` |
+| `notifiedAt` | Timestamp? | бот уже прислал «шаг готов»; сбрасывается при переходе на новый шаг |
+| `history` | array | ответы по порядку, см. ниже |
+
+Элемент `history[]`:
+
+| Поле | Тип | Смысл |
+|------|-----|-------|
+| `nodeId` | string | шаг, на который ответили |
+| `optionId` | string | выбранный ответ |
+| `at` | Timestamp | время ответа |
+| `effects` | `SpendEffect[]`? | `{ type: "spend", category, amount }` — траты, применённые к `allocation` (`functions/src/domain.ts`) |
+
+Индексы (`firestore.indexes.json`):
+- `stepStatus ASC, readyAt ASC` — scheduler ищет `pending` с наступившим `readyAt` (`processDueScenarioSteps`);
+- `teenTelegramId ASC, status ASC, scenarioId ASC` — активный run подростка (опционально по сценарию).
