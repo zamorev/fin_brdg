@@ -1,4 +1,4 @@
-// Кейсы — docs/design-docs/domain-test-cases.md (разделы 1, 2, 4).
+// Кейсы — docs/design-docs/domain-test-cases.md.
 // Каждый кейс прогоняется и через фронтовую копию (v2/web/src/domain/budget.ts):
 // пока копий две (X7), тест ловит расхождение.
 import { describe, it } from "node:test";
@@ -20,6 +20,11 @@ import {
   applyBudgetIncrease,
   validateAgreementChange,
   validateBudgetIncrease,
+  CategoryKey,
+  FundingSource,
+  changeCategory,
+  reserveSpare,
+  validateCategoryRequest,
 } from "./domain";
 import * as web from "../../v2/web/src/domain/budget";
 
@@ -244,31 +249,132 @@ describe("domain: validateAgreementChange", () => {
   });
 });
 
-describe("domain: changeCategory (фронт, шторка родителя)", () => {
+// Сервер и фронт: одинаковый результат, вход не меняется.
+function change(
+  a: Allocation,
+  budget: number,
+  key: CategoryKey,
+  amount: number,
+  source: FundingSource,
+) {
+  const before = { ...a };
+  const server = changeCategory(a, budget, key, amount, source);
+  assert.deepEqual(
+    web.changeCategory(a, budget, key, amount, source),
+    server,
+    "фронтовая копия changeCategory расходится с сервером",
+  );
+  assert.deepEqual(a, before, "вход не меняется");
+  return server;
+}
+
+describe("domain: changeCategory (шторка родителя, запрос подростка)", () => {
   it("рост из резерва — до минимума, остаток из бюджета", () => {
     const a = plan({ reserve: 150 });
-    const r = web.changeCategory(a, 1550, "entertainment", 500, "reserve");
+    const r = change(a, 1550, "entertainment", 500, "reserve");
     assert.deepEqual(r.allocation, plan({ entertainment: 500, reserve: 100 }));
     assert.equal(r.weeklyBudget, 1600);
     assert.deepEqual(check(r.allocation, r.weeklyBudget), []);
   });
 
+  it("рост из резерва целиком, бюджет не меняется", () => {
+    const r = change(plan({ reserve: 200 }), 1600, "entertainment", 500, "reserve");
+    assert.deepEqual(r.allocation, plan({ entertainment: 500, reserve: 100 }));
+    assert.equal(r.weeklyBudget, 1600);
+  });
+
   it("рост из бюджета — резерв не трогаем", () => {
-    const r = web.changeCategory(D, 1500, "entertainment", 500, "budget");
+    const r = change(D, 1500, "entertainment", 500, "budget");
     assert.deepEqual(r.allocation, plan({ entertainment: 500 }));
     assert.equal(r.weeklyBudget, 1600);
   });
 
   it("уменьшение уходит в резерв", () => {
-    const r = web.changeCategory(D, 1500, "entertainment", 300, "reserve");
+    const r = change(D, 1500, "entertainment", 300, "reserve");
     assert.deepEqual(r.allocation, plan({ entertainment: 300, reserve: 200 }));
     assert.equal(r.weeklyBudget, 1500);
   });
 
   it("правка резерва меняет бюджет", () => {
-    const r = web.changeCategory(D, 1500, "reserve", 250, "reserve");
+    const r = change(D, 1500, "reserve", 250, "reserve");
     assert.equal(r.weeklyBudget, 1650);
     assert.deepEqual(check(r.allocation, r.weeklyBudget), []);
+  });
+});
+
+describe("domain: reserveSpare", () => {
+  for (const [reserve, spare] of [[100, 0], [250, 150], [40, 0]] as const) {
+    it(`резерв ${reserve} → свободно ${spare}`, () => {
+      const a = plan({ reserve });
+      assert.equal(reserveSpare(a), spare);
+      assert.equal(web.reserveSpare(a), spare, "фронт расходится с сервером");
+    });
+  }
+});
+
+function checkCategoryRequest(
+  a: Allocation,
+  budget: number,
+  key: CategoryKey,
+  amount: number,
+  source: FundingSource,
+  explanation: string,
+): string[] {
+  const server = validateCategoryRequest(a, budget, key, amount, source, explanation);
+  assert.deepEqual(
+    web.validateCategoryRequest(a, budget, key, amount, source, explanation),
+    server,
+    "фронтовая копия validateCategoryRequest расходится с сервером",
+  );
+  return server;
+}
+
+describe("domain: validateCategoryRequest (T28)", () => {
+  const why = "Хочу в кино с друзьями";
+  const withReserve = plan({ reserve: 200 });
+
+  it("K1: +100 из резерва — ок", () => {
+    assert.deepEqual(checkCategoryRequest(withReserve, 1600, "entertainment", 500, "reserve", why), []);
+  });
+
+  it("K2: пустое объяснение", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "entertainment", 500, "budget", "  "), [
+      "Напиши, зачем это нужно",
+    ]);
+  });
+
+  it("K3: сумма как сейчас", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "entertainment", 400, "budget", why), [
+      "Сумма такая же, как сейчас",
+    ]);
+  });
+
+  it("K4: не кратно 50", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "entertainment", 420, "budget", why), [
+      `Сумма должна быть кратна ${formatRub(50)}`,
+    ]);
+  });
+
+  it("K5: ниже минимума", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "food", 450, "budget", why), [
+      `Обеды и перекусы: нужно не меньше ${formatRub(500)}`,
+    ]);
+  });
+
+  it("K6: прибавка к бюджету больше 500", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "entertainment", 950, "budget", why), [
+      `Бюджет недели за один раз — не больше чем +${formatRub(500)}`,
+    ]);
+  });
+
+  it("K7: остаток сверх резерва тоже считается прибавкой к бюджету", () => {
+    // +600: 100 из резерва, 500 из бюджета — на границе
+    assert.deepEqual(checkCategoryRequest(withReserve, 1600, "entertainment", 1000, "reserve", why), []);
+    assert.equal(checkCategoryRequest(withReserve, 1600, "entertainment", 1050, "reserve", why).length, 1);
+  });
+
+  it("K8: уменьшение — ок, деньги уходят в резерв", () => {
+    assert.deepEqual(checkCategoryRequest(D, 1500, "entertainment", 300, "reserve", why), []);
   });
 });
 
