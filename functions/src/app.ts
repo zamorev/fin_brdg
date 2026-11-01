@@ -185,10 +185,19 @@ export function createApp() {
 
   app.post("/api/requests", authMiddleware, async (req, res) => {
     try {
+      const body = req.body ?? {};
+      const explanation = String(body.explanation ?? "");
       const user = await createRequest(
         req.telegramUser!,
-        Number(req.body.increase),
-        String(req.body.explanation ?? ""),
+        body.kind === "category_change"
+          ? {
+              kind: "category_change",
+              categoryKey: String(body.categoryKey ?? ""),
+              amount: Number(body.amount),
+              fundingSource: body.fundingSource === "budget" ? "budget" : "reserve",
+              explanation,
+            }
+          : { kind: "weekly_budget", increase: Number(body.increase), explanation },
       );
       res.json({ user });
     } catch (e) {

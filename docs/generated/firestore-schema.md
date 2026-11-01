@@ -1,7 +1,7 @@
 # Firestore — схема данных
 
 **Источник правды — типы в коде** (`functions/src/store.ts`: `UserDoc`, `FamilyDoc`, `RequestDoc`; `functions/src/pendingInvite.ts`; `functions/src/scenarioRuns.ts`: `ScenarioRunDoc`). Меняешь тип или коллекцию — обнови этот файл в том же коммите.
-Сверено с кодом: 2026-10-29 (T16); `scenarioRuns` — 2026-10-31 (T23); `requests`, `teenWeeklyBudgets` — 2026-11-01 (T20).
+Сверено с кодом: 2026-10-29 (T16); `scenarioRuns` — 2026-10-31 (T23); `requests`, `teenWeeklyBudgets` — 2026-11-01 (T20, T28).
 
 Доступ только из `functions/` (Admin SDK). `firestore.rules` запрещают клиентам любое чтение и запись.
 
@@ -44,9 +44,11 @@
 | Поле | Тип | Смысл |
 |------|-----|-------|
 | `familyId` | string | |
-| `category` | `"weekly_budget"` \| `"entertainment"` | `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `entertainment` — старые запросы |
+| `category` | `"weekly_budget"` \| `"category_change"` \| `"entertainment"` | `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `category_change` — сумма одной категории (T28); `entertainment` — старые запросы |
 | `teenTelegramId` | number? | кто просит (нет у старых запросов) |
-| `currentAmount`, `proposedAmount` | number | ₽: бюджет сейчас и с прибавкой (у старых — развлечения) |
+| `currentAmount`, `proposedAmount` | number | ₽: бюджет сейчас и с прибавкой; у `category_change` — сумма категории сейчас и просимая (у старых — развлечения) |
+| `categoryKey` | string? | только `category_change`: `transport` \| `food` \| `entertainment` \| `savings` \| `reserve` |
+| `fundingSource` | `"reserve"` \| `"budget"`? | только `category_change`: откуда взять прибавку (из резерва — до его минимума, остаток из бюджета) |
 | `finalAmount` | number? | что одобрил родитель («своя сумма» или `proposedAmount`) |
 | `explanation` | string | зачем подростку, категория — в тексте |
 | `status` | `"pending"` \| `"approved"` \| `"rejected"` \| `"needs_clarification"` | решение финальное: менять можно только `pending` |
@@ -54,7 +56,7 @@
 | `createdAt` | Timestamp | |
 
 Индекс: `familyId ASC, createdAt DESC` (`firestore.indexes.json`). Пока есть `pending`, новый запрос не создаётся.
-При `approved` для `weekly_budget` — `teenWeeklyBudgets[teen] += finalAmount − currentAmount`, та же прибавка в `allocation.reserve`. Для старых `entertainment` — `allocation.entertainment = proposedAmount`.
+При `approved` для `weekly_budget` — `teenWeeklyBudgets[teen] += finalAmount − currentAmount`, та же прибавка в `allocation.reserve`. Для `category_change` — `changeCategory` (домен) к **текущим** `allocation` и бюджету подростка с `finalAmount` и `fundingSource`: категория = `finalAmount`, уменьшение уходит в резерв, прибавка — из резерва и/или в `teenWeeklyBudgets[teen]`. Для старых `entertainment` — `allocation.entertainment = proposedAmount`. Пока есть запрос в `pending`, новый (любого вида) не создаётся.
 
 Родитель меняет договорённость напрямую: `PATCH /api/teens/:telegramId/agreement` → `allocation` и `teenWeeklyBudgets[teen]` (перебор запрещён, нераспределённое допустимо; минимум — у изменённых категорий, `validateAgreementChange`).
 

@@ -3,14 +3,18 @@ import {
   applyBudgetIncrease,
   applyUnplanned,
   CATEGORY_ORDER,
+  changeCategory,
   DEFAULT_ALLOCATION,
   WEEKLY_BUDGET,
   type Allocation,
+  type CategoryKey,
+  type FundingSource,
   type RequestStatus,
   type UnplannedChoice,
   validateAllocation,
   validateAgreementChange,
   validateBudgetIncrease,
+  validateCategoryRequest,
 } from "./domain";
 
 export type { Allocation };
@@ -65,12 +69,19 @@ export type FamilyDoc = {
 
 export type RequestDoc = {
   familyId: string;
-  /** `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `entertainment` — старые запросы. */
-  category: "entertainment" | "weekly_budget";
+  /**
+   * `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `category_change` — сумма одной
+   * категории (T28); `entertainment` — старые запросы.
+   */
+  category: "entertainment" | "weekly_budget" | "category_change";
   /** Кто просит; у старых запросов нет. */
   teenTelegramId?: number;
+  /** Суммы бюджета недели (`weekly_budget`) или категории (`category_change`, `entertainment`). */
   currentAmount: number;
   proposedAmount: number;
+  /** Только `category_change`: какая категория и откуда взять прибавку. */
+  categoryKey?: CategoryKey;
+  fundingSource?: FundingSource;
   /** Что одобрил родитель (может отличаться от `proposedAmount` — «своя сумма»). */
   finalAmount?: number;
   explanation: string;
@@ -415,6 +426,8 @@ function buildSessionPayload(
           id: active.id,
           category: active.category,
           teenTelegramId: active.teenTelegramId,
+          categoryKey: active.categoryKey,
+          fundingSource: active.fundingSource,
           currentAmount: active.currentAmount,
           proposedAmount: active.proposedAmount,
           finalAmount: active.finalAmount,
@@ -652,33 +665,64 @@ export async function saveUnplanned(user: TelegramUser, choice: UnplannedChoice)
   return sessionForUser(user, profile);
 }
 
-export async function createRequest(
-  user: TelegramUser,
-  increase: number,
-  explanation: string,
-) {
-  const profile = await requireUser(user, "teen");
-  const errors = validateBudgetIncrease(increase, explanation);
-  if (errors.length) throw new Error(errors.join("; "));
+export type NewRequest =
+  | { kind: "weekly_budget"; increase: number; explanation: string }
+  | {
+      kind: "category_change";
+      categoryKey: string;
+      amount: number;
+      fundingSource: FundingSource;
+      explanation: string;
+    };
 
+/** Запрос подростка родителю: прибавка к бюджету (T20) или сумма категории (T28). */
+export async function createRequest(user: TelegramUser, input: NewRequest) {
+  const profile = await requireUser(user, "teen");
   const active = await getActiveRequest(profile.familyId);
   if (active?.status === "pending") throw new Error("Уже есть запрос — ждём ответа семьи");
 
   const family = await getFamily(profile.familyId);
-  const current = family.teenWeeklyBudgets?.[String(user.id)] ?? WEEKLY_BUDGET;
-
-  await db().collection("requests").add({
+  const budget = family.teenWeeklyBudgets?.[String(user.id)] ?? WEEKLY_BUDGET;
+  const base = {
     familyId: profile.familyId,
-    category: "weekly_budget",
     teenTelegramId: user.id,
-    currentAmount: current,
-    proposedAmount: current + increase,
-    explanation: explanation.trim(),
+    explanation: input.explanation.trim(),
     status: "pending",
     parentComment: "",
     createdAt: FieldValue.serverTimestamp(),
-  });
+  };
 
+  if (input.kind === "category_change") {
+    const key = input.categoryKey as CategoryKey;
+    if (!CATEGORY_ORDER.includes(key)) throw new Error("Неизвестная категория");
+    const errors = validateCategoryRequest(
+      family.allocation,
+      budget,
+      key,
+      input.amount,
+      input.fundingSource,
+      input.explanation,
+    );
+    if (errors.length) throw new Error(errors.join("; "));
+    await db().collection("requests").add({
+      ...base,
+      category: "category_change",
+      categoryKey: key,
+      fundingSource: input.fundingSource,
+      currentAmount: family.allocation[key],
+      proposedAmount: input.amount,
+    });
+    return sessionForUser(user, profile);
+  }
+
+  const errors = validateBudgetIncrease(input.increase, input.explanation);
+  if (errors.length) throw new Error(errors.join("; "));
+  await db().collection("requests").add({
+    ...base,
+    category: "weekly_budget",
+    currentAmount: budget,
+    proposedAmount: budget + input.increase,
+  });
   return sessionForUser(user, profile);
 }
 
@@ -755,9 +799,37 @@ export async function decideRequest(
     return sessionForUser(user, profile);
   }
 
+  // Категория (T28): применяем к текущей договорённости — лимиты могли поменяться после запроса.
+  if (status === "approved" && data.category === "category_change" && data.categoryKey) {
+    const finalAmount = amount ?? data.proposedAmount;
+    const source = data.fundingSource ?? "reserve";
+    const family = await getFamily(profile.familyId);
+    const teenId = String(data.teenTelegramId ?? soleTeenId(family));
+    const budgetNow = family.teenWeeklyBudgets?.[teenId] ?? WEEKLY_BUDGET;
+    const errors = validateCategoryRequest(
+      family.allocation,
+      budgetNow,
+      data.categoryKey,
+      finalAmount,
+      source,
+      data.explanation,
+    );
+    const next = changeCategory(family.allocation, budgetNow, data.categoryKey, finalAmount, source);
+    if (!errors.length) {
+      errors.push(...validateAgreementChange(family.allocation, next.allocation, next.weeklyBudget));
+    }
+    if (errors.length) throw new Error(errors.join("; "));
+    await familyRef.update({
+      allocation: next.allocation,
+      [`teenWeeklyBudgets.${teenId}`]: next.weeklyBudget,
+    });
+    await ref.update({ status, parentComment: comment.trim(), finalAmount });
+    return sessionForUser(user, profile);
+  }
+
   await ref.update({ status, parentComment: comment.trim() });
 
-  if (status === "approved") {
+  if (status === "approved" && data.category === "entertainment") {
     const family = await getFamily(profile.familyId);
     await familyRef.update({
       allocation: {
