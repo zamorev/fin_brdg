@@ -1173,3 +1173,23 @@ textarea {
   border-radius: 5px;
   background: var(--fb-button);
 }
+
+.pv-card.pv-row {
+  background: var(--fb-card);
+}
+
+.pv-btn--text.pv-tone-warn {
+  color: var(--fb-warn-text);
+}
+
+.pv-note.pv-tone-ok {
+  color: var(--fb-success);
+}
+
+.pv-note.pv-tone-warn {
+  color: var(--fb-warn-text);
+}
+
+.pv-note.pv-tone-danger {
+  color: var(--fb-danger);
+}

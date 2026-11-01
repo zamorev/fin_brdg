@@ -74,7 +74,9 @@ export function teenStatusLine(user: SessionUser, teen: FamilyMember): StatusLin
   const req = pendingRequest(user);
   if (req && requestTeen(user, req)?.telegramId === teen.telegramId) {
     return {
-      text: `Запрос · ${requestSubject(req).toLowerCase()} ${signedRub(req.proposedAmount - req.currentAmount)}`,
+      text: req.category === "weekly_budget"
+        ? `Запрос · ${signedRub(req.proposedAmount - req.currentAmount)} в неделю`
+        : `Запрос · ${requestSubject(req)}`,
       tone: "warn",
     };
   }
