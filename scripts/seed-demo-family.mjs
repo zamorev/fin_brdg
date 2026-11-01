@@ -67,10 +67,11 @@ for (const [id, userType, displayName] of [
 
 await db.collection("requests").doc(REQUEST_ID).set({
   familyId: FAMILY_ID,
-  category: "entertainment",
-  currentAmount: allocation.entertainment,
-  proposedAmount: 400,
-  explanation: "Хочу сходить с друзьями в кино в субботу",
+  category: "weekly_budget",
+  teenTelegramId: TEEN_ID,
+  currentAmount: 1500,
+  proposedAmount: 1600,
+  explanation: "Развлечения: хочу сходить с друзьями в кино в субботу",
   status: "pending",
   parentComment: "",
   createdAt: FieldValue.serverTimestamp(),

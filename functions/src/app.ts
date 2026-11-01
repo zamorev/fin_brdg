@@ -7,6 +7,7 @@ import {
   completeOnboarding,
   createRequest,
   decideRequest,
+  updateTeenAgreement,
   saveUnplanned,
   saveWeekBudget,
   startScenario,
@@ -186,7 +187,7 @@ export function createApp() {
     try {
       const user = await createRequest(
         req.telegramUser!,
-        Number(req.body.proposedAmount),
+        Number(req.body.increase),
         String(req.body.explanation ?? ""),
       );
       res.json({ user });
@@ -202,6 +203,21 @@ export function createApp() {
         String(req.params.id),
         String(req.body.action),
         String(req.body.comment ?? ""),
+        req.body.amount === undefined ? undefined : Number(req.body.amount),
+      );
+      res.json({ user });
+    } catch (e) {
+      res.status(400).json({ error: e instanceof Error ? e.message : "Ошибка" });
+    }
+  });
+
+  app.patch("/api/teens/:telegramId/agreement", authMiddleware, async (req, res) => {
+    try {
+      const user = await updateTeenAgreement(
+        req.telegramUser!,
+        Number(req.params.telegramId),
+        req.body.allocation ?? {},
+        req.body.weeklyBudget,
       );
       res.json({ user });
     } catch (e) {

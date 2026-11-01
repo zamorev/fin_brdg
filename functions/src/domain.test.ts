@@ -17,7 +17,8 @@ import {
   applyUnplanned,
   formatRub,
   validateAllocation,
-  validateRuleChange,
+  applyBudgetIncrease,
+  validateBudgetIncrease,
 } from "./domain";
 import * as web from "../../v2/web/src/domain/budget";
 
@@ -36,12 +37,12 @@ function check(a: Allocation, weeklyBudget?: number): string[] {
   return server;
 }
 
-function checkRule(current: number, proposed: number, explanation: string): string[] {
-  const server = validateRuleChange(current, proposed, explanation);
+function checkIncrease(increase: number, explanation: string): string[] {
+  const server = validateBudgetIncrease(increase, explanation);
   assert.deepEqual(
-    web.validateRuleChange(current, proposed, explanation),
+    web.validateBudgetIncrease(increase, explanation),
     server,
-    "фронтовая копия validateRuleChange расходится с сервером",
+    "фронтовая копия validateBudgetIncrease расходится с сервером",
   );
   return server;
 }
@@ -173,36 +174,73 @@ describe("domain: validateAllocation", () => {
   });
 });
 
-describe("domain: validateRuleChange", () => {
-  it("R1: базовый запрос 400 → 500 без ошибок", () => {
-    assert.deepEqual(checkRule(400, 500, "Хочу ходить в кино"), []);
+describe("domain: validateBudgetIncrease", () => {
+  const why = "Хочу ходить в кино";
+
+  it("R1: базовый запрос +100 без ошибок", () => {
+    assert.deepEqual(checkIncrease(100, why), []);
   });
 
   it("R3: пустое объяснение или одни пробелы", () => {
     for (const explanation of ["", "   "]) {
-      assert.deepEqual(checkRule(400, 500, explanation), ["Расскажи, зачем тебе это важно"]);
+      assert.deepEqual(checkIncrease(100, explanation), ["Расскажи, на что нужны деньги"]);
     }
   });
 
-  it("R4: сумма 0 или отрицательная", () => {
-    for (const proposed of [0, -50]) {
-      assert.deepEqual(checkRule(400, proposed, "Хочу ходить в кино"), ["Укажи сумму больше нуля"]);
+  it("R4: прибавка 0, отрицательная или дробная", () => {
+    for (const increase of [0, -50, 50.5]) {
+      assert.deepEqual(checkIncrease(increase, why), ["Укажи сумму больше нуля"]);
     }
   });
 
-  it("R5: сумма как сейчас", () => {
-    assert.deepEqual(checkRule(400, 400, "Хочу ходить в кино"), ["Нужна другая сумма, не как сейчас"]);
+  it("R5: не кратно шагу", () => {
+    assert.deepEqual(checkIncrease(120, why), [`Сумма должна быть кратна ${formatRub(50)}`]);
   });
 
-  it("R6: больше недельного бюджета", () => {
-    assert.deepEqual(checkRule(400, 1501, "Хочу ходить в кино"), [
-      `На неделю не больше ${formatRub(1500)} — это учебный бюджет`,
-    ]);
-    assert.deepEqual(checkRule(400, 1500, "Хочу ходить в кино"), []);
+  it("R6: больше потолка за раз", () => {
+    assert.deepEqual(checkIncrease(550, why), [`За один раз не больше ${formatRub(500)}`]);
+    assert.deepEqual(checkIncrease(500, why), []);
   });
 
   it("несколько ошибок сразу", () => {
-    assert.equal(checkRule(400, 0, " ").length, 2);
+    assert.equal(checkIncrease(0, " ").length, 2);
+  });
+});
+
+describe("domain: applyBudgetIncrease", () => {
+  it("прибавка уходит в резерв, сумма = новому бюджету", () => {
+    const after = applyBudgetIncrease(D, 100);
+    assert.deepEqual(after, plan({ reserve: 200 }));
+    assert.deepEqual(web.applyBudgetIncrease(D, 100), after);
+    assert.deepEqual(check(after, WEEKLY_BUDGET + 100), []);
+  });
+});
+
+describe("domain: changeCategory (фронт, шторка родителя)", () => {
+  it("рост из резерва — до минимума, остаток из бюджета", () => {
+    const a = plan({ reserve: 150 });
+    const r = web.changeCategory(a, 1550, "entertainment", 500, "reserve");
+    assert.deepEqual(r.allocation, plan({ entertainment: 500, reserve: 100 }));
+    assert.equal(r.weeklyBudget, 1600);
+    assert.deepEqual(check(r.allocation, r.weeklyBudget), []);
+  });
+
+  it("рост из бюджета — резерв не трогаем", () => {
+    const r = web.changeCategory(D, 1500, "entertainment", 500, "budget");
+    assert.deepEqual(r.allocation, plan({ entertainment: 500 }));
+    assert.equal(r.weeklyBudget, 1600);
+  });
+
+  it("уменьшение уходит в резерв", () => {
+    const r = web.changeCategory(D, 1500, "entertainment", 300, "reserve");
+    assert.deepEqual(r.allocation, plan({ entertainment: 300, reserve: 200 }));
+    assert.equal(r.weeklyBudget, 1500);
+  });
+
+  it("правка резерва меняет бюджет", () => {
+    const r = web.changeCategory(D, 1500, "reserve", 250, "reserve");
+    assert.equal(r.weeklyBudget, 1650);
+    assert.deepEqual(check(r.allocation, r.weeklyBudget), []);
   });
 });
 

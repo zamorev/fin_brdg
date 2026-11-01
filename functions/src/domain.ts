@@ -111,16 +111,22 @@ export type RequestStatus =
   | "rejected"
   | "needs_clarification";
 
-export function validateRuleChange(
-  current: number,
-  proposed: number,
-  explanation: string,
-): string[] {
+// Запрос подростка «+N ₽ к недельному бюджету» (T20, D11). Тексты совпадают с v2/web/src/domain/budget.ts.
+export const BUDGET_INCREASE_STEP = 50;
+export const BUDGET_INCREASE_MAX = 500;
+
+export function validateBudgetIncrease(increase: number, explanation: string): string[] {
   const errors: string[] = [];
-  if (!explanation.trim()) errors.push("Расскажи, зачем тебе это важно");
-  if (proposed <= 0) errors.push("Укажи сумму больше нуля");
-  else if (proposed > WEEKLY_BUDGET)
-    errors.push(`На неделю не больше ${formatRub(WEEKLY_BUDGET)} — это учебный бюджет`);
-  else if (proposed === current) errors.push("Нужна другая сумма, не как сейчас");
+  if (!explanation.trim()) errors.push("Расскажи, на что нужны деньги");
+  if (!Number.isInteger(increase) || increase <= 0) errors.push("Укажи сумму больше нуля");
+  else if (increase > BUDGET_INCREASE_MAX)
+    errors.push(`За один раз не больше ${formatRub(BUDGET_INCREASE_MAX)}`);
+  else if (increase % BUDGET_INCREASE_STEP !== 0)
+    errors.push(`Сумма должна быть кратна ${formatRub(BUDGET_INCREASE_STEP)}`);
   return errors;
+}
+
+/** Одобренная прибавка ложится в резерв: сумма категорий остаётся равной новому бюджету. */
+export function applyBudgetIncrease(a: Allocation, increase: number): Allocation {
+  return { ...a, reserve: a.reserve + increase };
 }
