@@ -1,7 +1,7 @@
 ---
 id: T20
 title: Экраны родителя по макету + запрос «+N ₽ к недельному бюджету»
-status: in-progress
+status: done
 owns:
   - J1: v2/web/src/screens/** (ParentHome, ParentRequests, TeenAgreement, CategorySheet — новые; NewConditions, TeenHome, RequestStatusTeen, RequestSent — тексты запроса; ParentRequest — удалить), v2/web/src/components/**, v2/web/src/styles/**
   - J2 (минимально): v2/web/src/App.tsx — маршруты родителя, перезапрос сессии; v2/web/src/api/client.ts
