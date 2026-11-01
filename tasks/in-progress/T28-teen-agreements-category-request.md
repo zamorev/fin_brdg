@@ -1,7 +1,10 @@
 ---
 id: T28
 title: «Мои договорённости» у подростка — категории и запрос на изменение категории
-status: backlog
+status: in-progress
+claimed-by: sw3artog0d
+branch: agent/sw3artog0d/T28-teen-agreements-category-request
+started: 2026-11-01
 owns:
   - J1: v2/web/src/screens/MyAgreements.tsx (новый), v2/web/src/screens/TeenHome.tsx (строка «Мои договорённости», строка запроса), v2/web/src/screens/RequestSent.tsx, v2/web/src/screens/RequestStatusTeen.tsx, v2/web/src/screens/ParentRequests.tsx (карточка запроса по категории), v2/web/src/screens/TeenAgreement.tsx (только вынос общих блоков), v2/web/src/components/** (CategorySheet — режим запроса; общие блоки бюджета и списка категорий), v2/web/src/styles/**
   - J2 (минимально): v2/web/src/App.tsx — маршрут подростка; v2/web/src/api/client.ts
