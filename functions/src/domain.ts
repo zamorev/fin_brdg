@@ -126,6 +126,34 @@ export function validateBudgetIncrease(increase: number, explanation: string): s
   return errors;
 }
 
+/**
+ * Правка договорённости родителем (T20). Перебор запрещён, нераспределённое допустимо
+ * (траты квестов уже могли его создать). Минимум проверяется только у изменённых категорий:
+ * если квест уже опустил категорию ниже минимума, остальные правки не блокируются.
+ */
+export function validateAgreementChange(
+  before: Allocation,
+  after: Allocation,
+  weeklyBudget: number,
+): string[] {
+  const errors: string[] = [];
+  const sum = CATEGORY_ORDER.reduce((s, k) => s + after[k], 0);
+  if (sum > weeklyBudget) {
+    errors.push(`Категории больше бюджета на ${formatRub(sum - weeklyBudget)}`);
+  }
+  for (const key of CATEGORY_ORDER) {
+    if (after[key] < 0) {
+      errors.push(`${CATEGORY_LABELS[key]}: сумма не может быть отрицательной`);
+      continue;
+    }
+    const min = CATEGORY_MINIMUMS[key];
+    if (min !== undefined && after[key] < min && after[key] !== before[key]) {
+      errors.push(`${CATEGORY_LABELS[key]}: нужно не меньше ${formatRub(min)}`);
+    }
+  }
+  return errors;
+}
+
 /** Одобренная прибавка ложится в резерв: сумма категорий остаётся равной новому бюджету. */
 export function applyBudgetIncrease(a: Allocation, increase: number): Allocation {
   return { ...a, reserve: a.reserve + increase };

@@ -18,6 +18,7 @@ import {
   formatRub,
   validateAllocation,
   applyBudgetIncrease,
+  validateAgreementChange,
   validateBudgetIncrease,
 } from "./domain";
 import * as web from "../../v2/web/src/domain/budget";
@@ -213,6 +214,33 @@ describe("domain: applyBudgetIncrease", () => {
     assert.deepEqual(after, plan({ reserve: 200 }));
     assert.deepEqual(web.applyBudgetIncrease(D, 100), after);
     assert.deepEqual(check(after, WEEKLY_BUDGET + 100), []);
+  });
+});
+
+describe("domain: validateAgreementChange", () => {
+  const checkChange = (before: Allocation, after: Allocation, budget: number) => {
+    const server = validateAgreementChange(before, after, budget);
+    assert.deepEqual(web.validateAgreementChange(before, after, budget), server);
+    return server;
+  };
+
+  it("сумма = бюджету — ок; нераспределённое допустимо", () => {
+    assert.deepEqual(checkChange(D, plan({ entertainment: 500, reserve: 0 + 100 }), 1600), []);
+    assert.deepEqual(checkChange(D, plan({ entertainment: 300 }), 1500), []);
+  });
+
+  it("перебор запрещён", () => {
+    assert.deepEqual(checkChange(D, plan({ entertainment: 600 }), 1500), [
+      `Категории больше бюджета на ${formatRub(200)}`,
+    ]);
+  });
+
+  it("минимум — только у изменённой категории", () => {
+    const spent = plan({ reserve: 0 });
+    assert.deepEqual(checkChange(spent, plan({ reserve: 0, entertainment: 300 }), 1500), []);
+    assert.deepEqual(checkChange(D, plan({ transport: 250 }), 1500), [
+      `${CATEGORY_LABELS.transport}: нужно не меньше ${formatRub(300)}`,
+    ]);
   });
 });
 

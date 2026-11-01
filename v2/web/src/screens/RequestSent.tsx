@@ -31,12 +31,12 @@ export function RequestSent({ user, onDone, onViewStatus }: Props) {
       </div>
       <h1 className="screen-title">Показали родителю</h1>
       <p className="screen-sub">
-        Родитель увидит это у себя в боте, когда зайдёт.
+        Родитель увидит запрос у себя в приложении.
       </p>
 
       <div className="card" style={{ textAlign: "left" }}>
         <div style={{ color: "var(--fb-hint)", fontSize: "0.8125rem" }}>
-          Развлечения в неделю
+          {req.category === "weekly_budget" ? "Бюджет недели" : "Развлечения в неделю"}
         </div>
         <div className="compare" style={{ margin: "12px 0" }}>
           <span className="compare-old">{formatRub(req.currentAmount)}</span>

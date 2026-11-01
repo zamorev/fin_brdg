@@ -1,4 +1,5 @@
 import { formatRub } from "../domain/budget";
+import { selfWeeklyBudget } from "../domain/memberBudget";
 import type { SessionUser } from "../domain/types";
 import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
@@ -22,6 +23,8 @@ export function RequestStatusTeen({ user, onBack }: Props) {
   }
 
   const approved = req.status === "approved";
+  const weekly = req.category === "weekly_budget";
+  const finalAmount = approved ? req.finalAmount ?? req.proposedAmount : req.proposedAmount;
   const rejected = req.status === "rejected";
   const clarify = req.status === "needs_clarification";
 
@@ -34,7 +37,9 @@ export function RequestStatusTeen({ user, onBack }: Props) {
         : "Ждём ответа семьи";
 
   const subline = approved
-    ? "Правило обновилось — смотри ниже"
+    ? weekly
+      ? "Прибавка легла в резерв — можешь переложить её в квесте «Неделя»"
+      : "Правило обновилось — смотри ниже"
     : rejected
       ? "Можно обсудить снова после следующего квеста"
       : clarify
@@ -89,7 +94,7 @@ export function RequestStatusTeen({ user, onBack }: Props) {
           <span style={{ color: "var(--fb-hint)" }}>→</span>
           <div>
             <div style={{ color: "var(--fb-hint)", fontSize: "0.75rem" }}>Стало</div>
-            <div className="compare-new">{formatRub(req.proposedAmount)}</div>
+            <div className="compare-new">{formatRub(finalAmount)}</div>
           </div>
         </div>
 
@@ -107,6 +112,12 @@ export function RequestStatusTeen({ user, onBack }: Props) {
         <>
           <h3 style={{ margin: "16px 0 8px" }}>Твои правила теперь</h3>
           <div className="card">
+            {weekly ? (
+              <div className="row-between" style={{ marginBottom: 12 }}>
+                <span>Бюджет недели</span>
+                <strong>{formatRub(selfWeeklyBudget(user))}</strong>
+              </div>
+            ) : null}
             <div className="row-between">
               <span>Развлечения</span>
               <strong>{formatRub(user.family.allocation.entertainment)} в неделю</strong>
@@ -124,7 +135,7 @@ export function RequestStatusTeen({ user, onBack }: Props) {
       )}
 
       <p className="hint-footer">
-        Вы в одной истории — ответ виден и тебе, и родителю в боте.
+        Вы в одной истории — ответ виден и тебе, и родителю в приложении.
       </p>
 
       <MainAction text="Вернуться на главную" onClick={onBack} />

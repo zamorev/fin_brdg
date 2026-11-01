@@ -56,7 +56,7 @@
 Индекс: `familyId ASC, createdAt DESC` (`firestore.indexes.json`). Пока есть `pending`, новый запрос не создаётся.
 При `approved` для `weekly_budget` — `teenWeeklyBudgets[teen] += finalAmount − currentAmount`, та же прибавка в `allocation.reserve`. Для старых `entertainment` — `allocation.entertainment = proposedAmount`.
 
-Родитель меняет договорённость напрямую: `PATCH /api/teens/:telegramId/agreement` → `allocation` и `teenWeeklyBudgets[teen]` (сумма категорий = бюджету, минимумы).
+Родитель меняет договорённость напрямую: `PATCH /api/teens/:telegramId/agreement` → `allocation` и `teenWeeklyBudgets[teen]` (перебор запрещён, нераспределённое допустимо; минимум — у изменённых категорий, `validateAgreementChange`).
 
 ## `pendingInvites/{telegramId}`
 

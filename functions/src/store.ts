@@ -9,6 +9,7 @@ import {
   type RequestStatus,
   type UnplannedChoice,
   validateAllocation,
+  validateAgreementChange,
   validateBudgetIncrease,
 } from "./domain";
 
@@ -798,7 +799,8 @@ export async function updateTeenAgreement(
     if (!Number.isInteger(value)) throw new Error("Суммы категорий — целые числа");
     allocation[key] = value;
   }
-  const errors = validateAllocation(allocation, weeklyBudget);
+  const family = await getFamily(profile.familyId);
+  const errors = validateAgreementChange(family.allocation, allocation, weeklyBudget);
   if (errors.length) throw new Error(errors.join("; "));
 
   await db()
