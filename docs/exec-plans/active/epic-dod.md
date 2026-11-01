@@ -30,7 +30,7 @@
 | [T25](../../../tasks/done/T25-v2-content-admin.md) | Тестовая CMS: `/admin/`, сообщения, сценарии, runtime | K1–K3, J1–J2 | T17 | ✅ done |
 | [T26](../../../tasks/done/T26-family-done-top.md) | «Семья»: «← Назад» сверху слева вместо «Готово» внизу | J1 (`FamilyScreen`, css) | — | средний |
 | [T27](../../../tasks/done/T27-quest1-sliders-ux.md) | Квест 1: ползунки, минимумы, цвет и строка статуса, статичная кнопка (сначала план) | J1 (`QuestBudget`, `MainAction`, css) | — | высокий |
-| [T28](../../../tasks/in-progress/T28-teen-agreements-category-request.md) | «Мои договорённости» у подростка: категории, запрос на изменение категории | J1, J2 мин., K1 мин., K2, L | T20 | высокий |
+| [T28](../../../tasks/done/T28-teen-agreements-category-request.md) | «Мои договорённости» у подростка: категории, запрос на изменение категории | J1, J2 мин., K1 мин., K2, L | T20 | ✅ done |
 
 ## Порядок и параллельность (два разработчика)
 

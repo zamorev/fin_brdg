@@ -1,7 +1,7 @@
 ---
 id: T28
 title: «Мои договорённости» у подростка — категории и запрос на изменение категории
-status: in-progress
+status: done
 claimed-by: sw3artog0d
 branch: agent/sw3artog0d/T28-teen-agreements-category-request
 started: 2026-11-01
