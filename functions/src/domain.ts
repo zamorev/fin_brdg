@@ -158,3 +158,70 @@ export function validateAgreementChange(
 export function applyBudgetIncrease(a: Allocation, increase: number): Allocation {
   return { ...a, reserve: a.reserve + increase };
 }
+
+export type FundingSource = "reserve" | "budget";
+
+/**
+ * Правка одной категории (шторка, T20; запрос подростка, T28). Прибавка берётся из резерва
+ * (до его минимума, остаток — из бюджета) или целиком из бюджета; уменьшение уходит в резерв.
+ * Копия — v2/web/src/domain/budget.ts (сверяет domain.test.ts).
+ */
+export function changeCategory(
+  a: Allocation,
+  weeklyBudget: number,
+  key: CategoryKey,
+  amount: number,
+  source: FundingSource,
+): { allocation: Allocation; weeklyBudget: number } {
+  const delta = amount - a[key];
+  const next = { ...a, [key]: amount };
+  if (key === "reserve") {
+    return { allocation: next, weeklyBudget: weeklyBudget + delta };
+  }
+  if (delta <= 0) {
+    next.reserve += -delta;
+    return { allocation: next, weeklyBudget };
+  }
+  const fromReserve = source === "reserve" ? Math.min(delta, reserveSpare(a)) : 0;
+  next.reserve -= fromReserve;
+  return { allocation: next, weeklyBudget: weeklyBudget + delta - fromReserve };
+}
+
+/** Сколько можно взять из резерва, не опускаясь ниже минимума. */
+export function reserveSpare(a: Allocation): number {
+  return Math.max(0, a.reserve - (CATEGORY_MINIMUMS.reserve ?? 0));
+}
+
+export const CATEGORY_REQUEST_STEP = 50;
+
+/**
+ * Запрос подростка «изменить сумму категории» (T28). Прибавка к бюджету считается
+ * через changeCategory: если резерва не хватило, остаток тоже идёт из бюджета.
+ */
+export function validateCategoryRequest(
+  a: Allocation,
+  weeklyBudget: number,
+  key: CategoryKey,
+  amount: number,
+  source: FundingSource,
+  explanation: string,
+): string[] {
+  const errors: string[] = [];
+  if (!explanation.trim()) errors.push("Напиши, зачем это нужно");
+  if (!Number.isInteger(amount) || amount < 0) {
+    errors.push("Укажи сумму — целое число");
+    return errors;
+  }
+  if (amount === a[key]) errors.push("Сумма такая же, как сейчас");
+  else if (amount % CATEGORY_REQUEST_STEP !== 0)
+    errors.push(`Сумма должна быть кратна ${formatRub(CATEGORY_REQUEST_STEP)}`);
+  const min = CATEGORY_MINIMUMS[key];
+  if (min !== undefined && amount < min) {
+    errors.push(`${CATEGORY_LABELS[key]}: нужно не меньше ${formatRub(min)}`);
+  }
+  const increase = changeCategory(a, weeklyBudget, key, amount, source).weeklyBudget - weeklyBudget;
+  if (increase > BUDGET_INCREASE_MAX) {
+    errors.push(`Бюджет недели за один раз — не больше чем +${formatRub(BUDGET_INCREASE_MAX)}`);
+  }
+  return errors;
+}

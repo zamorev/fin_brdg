@@ -17,6 +17,7 @@ import { RequestStatusTeen } from "./screens/RequestStatusTeen";
 import { ParentHome } from "./screens/ParentHome";
 import { ParentRequests } from "./screens/ParentRequests";
 import { TeenAgreement } from "./screens/TeenAgreement";
+import { MyAgreements } from "./screens/MyAgreements";
 import { fetchMe } from "./api/client";
 import type { SessionUser } from "./domain/types";
 import { FamilyScreen } from "./screens/FamilyScreen";
@@ -33,6 +34,7 @@ type Route =
       before: Allocation;
     }
   | { name: "new-conditions" }
+  | { name: "my-agreements" }
   | { name: "request-sent" }
   | { name: "request-status" }
   | { name: "parent-requests" }
@@ -196,6 +198,18 @@ export function App() {
           }}
         />
       );
+    case "my-agreements":
+      return (
+        <MyAgreements
+          user={user}
+          onBack={goHome}
+          onOpenRequest={() => setRoute({ name: "request-status" })}
+          onSent={(u) => {
+            setUser(u);
+            setRoute({ name: "request-sent" });
+          }}
+        />
+      );
     case "request-sent":
       return (
         <RequestSent
@@ -252,7 +266,7 @@ export function App() {
         <TeenHome
           user={user}
           onStartQuest={() => setRoute({ name: "quest-budget" })}
-          onOpenAgreements={goHome}
+          onOpenAgreements={() => setRoute({ name: "my-agreements" })}
           onOpenRequest={() => setRoute({ name: "request-status" })}
           onNewRequest={() => setRoute({ name: "new-conditions" })}
           onOpenFamily={openFamily}

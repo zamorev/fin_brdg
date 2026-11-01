@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
-import { BUDGET_INCREASE_MAX, BUDGET_INCREASE_STEP, formatRub } from "../domain/budget";
 import {
+  BUDGET_INCREASE_MAX,
+  BUDGET_INCREASE_STEP,
+  CATEGORY_MINIMUMS,
+  changeCategory,
+  formatRub,
+  validateCategoryRequest,
+} from "../domain/budget";
+import { memberWeeklyBudget } from "../domain/memberBudget";
+import {
+  categoryChangeEffect,
   formatRequestTime,
   pendingRequest,
   requestSubject,
@@ -54,7 +63,7 @@ export function ParentRequests({ user, onBack, onDecided }: Props) {
         Запросы
       </h1>
       <p className="screen-sub">
-        Подростки просят прибавку к недельному бюджету. Решение сразу увидят у себя в приложении.
+        Подростки просят прибавку к бюджету или другую сумму в категории. Решение сразу увидят у себя в приложении.
       </p>
 
       <div className="pv-tabs" role="tablist">
@@ -114,6 +123,11 @@ function RequestCard({
   const teen = requestTeen(user, req);
   const name = teenName(teen);
   const weekly = req.category === "weekly_budget";
+  // Запрос по категории (T28): последствия считаем от текущей договорённости.
+  const categoryKey = req.category === "category_change" ? req.categoryKey ?? null : null;
+  const source = req.fundingSource ?? "reserve";
+  const allocation = user.family.allocation;
+  const teenBudget = teen ? memberWeeklyBudget(teen) : 0;
   const delta = req.proposedAmount - req.currentAmount;
   const [mode, setMode] = useState<Mode>("idle");
   const [text, setText] = useState("");
@@ -181,7 +195,9 @@ function RequestCard({
         <span>
           {weekly
             ? `Если одобрить: бюджет ${formatRub(req.currentAmount)} → ${formatRub(req.proposedAmount)}, ${signedRub(delta)} в резерв`
-            : `Если одобрить: развлечения ${formatRub(req.currentAmount)} → ${formatRub(req.proposedAmount)}`}
+            : categoryKey
+              ? `Если одобрить: ${categoryChangeEffect(allocation, teenBudget, categoryKey, req.proposedAmount, source)}`
+              : `Если одобрить: развлечения ${formatRub(req.currentAmount)} → ${formatRub(req.proposedAmount)}`}
         </span>
       </div>
 
@@ -207,7 +223,7 @@ function RequestCard({
             </button>
           </div>
           <div className="pv-actions">
-            {weekly ? (
+            {weekly || categoryKey ? (
               <button type="button" className="pv-btn pv-btn--text" disabled={loading} onClick={() => openMode("counter")}>
                 Своя сумма
               </button>
@@ -221,7 +237,19 @@ function RequestCard({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {mode === "counter" ? (
+          {mode === "counter" && categoryKey ? (
+            <CategoryCounter
+              req={req}
+              categoryKey={categoryKey}
+              allocation={allocation}
+              weeklyBudget={teenBudget}
+              value={counter}
+              onChange={(v) => {
+                haptic("light");
+                setCounter(v);
+              }}
+            />
+          ) : mode === "counter" ? (
             <div className="pv-stepper">
               <button
                 type="button"
@@ -275,7 +303,13 @@ function RequestCard({
             <button
               type="button"
               className="pv-btn pv-btn--primary"
-              disabled={loading || (mode === "ask" && !text.trim())}
+              disabled={
+                loading ||
+                (mode === "ask" && !text.trim()) ||
+                (mode === "counter" &&
+                  categoryKey !== null &&
+                  validateCategoryRequest(allocation, teenBudget, categoryKey, counter, source, req.explanation).length > 0)
+              }
               onClick={() => {
                 if (mode === "decline") {
                   void send("reject", text, { text: "Отклонено — можно обсудить позже", tone: "danger" });
@@ -349,11 +383,69 @@ function RecentlyDecided({ user, req }: { user: SessionUser; req: RuleChangeRequ
   );
 }
 
-/** Середина между «было» и «просит», округлённая до шага. */
+/** Середина между «было» и «просит», округлённая до шага, но не равная «было». */
 function midpoint(req: RuleChangeRequest): number {
   const mid = (req.currentAmount + req.proposedAmount) / 2;
   const rounded = Math.round(mid / BUDGET_INCREASE_STEP) * BUDGET_INCREASE_STEP;
-  return Math.max(req.currentAmount + BUDGET_INCREASE_STEP, rounded);
+  return req.proposedAmount < req.currentAmount
+    ? Math.min(req.currentAmount - BUDGET_INCREASE_STEP, rounded)
+    : Math.max(req.currentAmount + BUDGET_INCREASE_STEP, rounded);
+}
+
+/** «Своя сумма» для запроса по категории (T28): степпер по сумме категории и последствия. */
+function CategoryCounter({
+  req,
+  categoryKey,
+  allocation,
+  weeklyBudget,
+  value,
+  onChange,
+}: {
+  req: RuleChangeRequest;
+  categoryKey: NonNullable<RuleChangeRequest["categoryKey"]>;
+  allocation: SessionUser["family"]["allocation"];
+  weeklyBudget: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const source = req.fundingSource ?? "reserve";
+  const min = CATEGORY_MINIMUMS[categoryKey] ?? 0;
+  const increase = (v: number) =>
+    changeCategory(allocation, weeklyBudget, categoryKey, v, source).weeklyBudget - weeklyBudget;
+  const errors = validateCategoryRequest(allocation, weeklyBudget, categoryKey, value, source, req.explanation);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="pv-stepper">
+        <button
+          type="button"
+          className="pv-round"
+          aria-label={`Меньше на ${BUDGET_INCREASE_STEP} ₽`}
+          disabled={value - BUDGET_INCREASE_STEP < min}
+          onClick={() => onChange(value - BUDGET_INCREASE_STEP)}
+        >
+          −
+        </button>
+        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+          <span style={{ fontSize: "1.75rem", fontWeight: 700 }}>{formatRub(value)}</span>
+          <span className="pv-row__sub">в неделю · просит {formatRub(req.proposedAmount)}</span>
+        </span>
+        <button
+          type="button"
+          className="pv-round"
+          aria-label={`Больше на ${BUDGET_INCREASE_STEP} ₽`}
+          disabled={increase(value + BUDGET_INCREASE_STEP) > BUDGET_INCREASE_MAX}
+          onClick={() => onChange(value + BUDGET_INCREASE_STEP)}
+        >
+          +
+        </button>
+      </div>
+      {errors.length ? (
+        <span className="pv-note pv-tone-danger">{errors.join("; ")}</span>
+      ) : (
+        <span className="pv-note">{categoryChangeEffect(allocation, weeklyBudget, categoryKey, value, source)}</span>
+      )}
+    </div>
+  );
 }
 
 function toneBg(tone: Outcome["tone"]): string {

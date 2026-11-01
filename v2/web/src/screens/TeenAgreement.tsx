@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  CATEGORY_LABELS,
   CATEGORY_MINIMUMS,
-  CATEGORY_ORDER,
   formatRub,
   reserveSpare,
   type Allocation,
@@ -10,7 +8,6 @@ import {
 } from "../domain/budget";
 import { memberWeeklyBudget } from "../domain/memberBudget";
 import {
-  budgetBalance,
   pendingRequest,
   plural,
   questsDone,
@@ -23,7 +20,7 @@ import { useBackAction } from "../components/useBackAction";
 import { BackLink } from "../components/BackLink";
 import { MemberAvatar } from "../components/MemberAvatar";
 import { CategorySheet } from "../components/CategorySheet";
-import { AlertIcon, CheckIcon, ChevronRight } from "../components/ParentIcons";
+import { BudgetCard, CategoryList } from "../components/AgreementBlocks";
 import { useTwa } from "../twa/TwaProvider";
 
 type Props = {
@@ -36,15 +33,6 @@ type Props = {
 
 const BUDGET_STEP = 100;
 const SAVE_DEBOUNCE_MS = 800;
-
-// Цвет категории в полосе и в иконке строки.
-const CATEGORY_COLORS: Record<CategoryKey, string> = {
-  transport: "#5b9bff",
-  food: "#2fb872",
-  entertainment: "#e0a82a",
-  savings: "#b866d6",
-  reserve: "#9a9aa0",
-};
 
 type Draft = { allocation: Allocation; weeklyBudget: number };
 
@@ -118,8 +106,6 @@ export function TeenAgreement({ user, teenTelegramId, onBack, onOpenRequests, on
     saveTimer.current = window.setTimeout(() => void save(next).catch(() => {}), SAVE_DEBOUNCE_MS);
   };
 
-  const { allocated, unallocated } = budgetBalance(draft.allocation, draft.weeklyBudget);
-  const denom = Math.max(draft.weeklyBudget, allocated) || 1;
   const req = pendingRequest(user);
   const teenReq = req && requestTeen(user, req)?.telegramId === teen.telegramId ? req : null;
   const quests = questsDone(user.family);
@@ -150,13 +136,12 @@ export function TeenAgreement({ user, teenTelegramId, onBack, onOpenRequests, on
         </button>
       ) : null}
 
-      <section className="pv-card pv-card--pad pv-budget">
-        <div className="row-between">
-          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <span className="pv-role">Бюджет на неделю</span>
-            <span className="pv-big">{formatRub(draft.weeklyBudget)}</span>
-          </span>
-          <span style={{ display: "flex", gap: 8 }}>
+      <BudgetCard
+        allocation={draft.allocation}
+        weeklyBudget={draft.weeklyBudget}
+        hint={`−/+ меняют резерв; резерв не опускается ниже ${formatRub(CATEGORY_MINIMUMS.reserve ?? 0)}`}
+        actions={
+          <>
             <button
               type="button"
               className="pv-round"
@@ -169,49 +154,19 @@ export function TeenAgreement({ user, teenTelegramId, onBack, onOpenRequests, on
             <button type="button" className="pv-round" aria-label={`Увеличить на ${BUDGET_STEP} ₽`} onClick={() => stepBudget(1)}>
               +
             </button>
-          </span>
-        </div>
-        <div className={`pv-bar${unallocated < 0 ? " pv-bar--over" : ""}`}>
-          {CATEGORY_ORDER.filter((k) => draft.allocation[k] > 0).map((k) => (
-            <span key={k} style={{ width: `${(draft.allocation[k] / denom) * 100}%`, background: CATEGORY_COLORS[k] }} />
-          ))}
-        </div>
-        <BalanceLine allocated={allocated} unallocated={unallocated} />
-        <span className="pv-row__sub">−/+ меняют резерв; резерв не опускается ниже {formatRub(CATEGORY_MINIMUMS.reserve ?? 0)}</span>
-      </section>
+          </>
+        }
+      />
 
-      <section className="pv-section">
-        <div className="pv-section-head">
-          <h2>Категории</h2>
-          <span className="pv-role" style={{ fontSize: "0.875rem" }}>в неделю</span>
-        </div>
-        <div className="pv-card">
-          {CATEGORY_ORDER.map((k) => {
-            const min = CATEGORY_MINIMUMS[k];
-            const color = CATEGORY_COLORS[k];
-            return (
-              <button key={k} type="button" className="pv-row" onClick={() => setSheet(k)}>
-                <span className="pv-dot-tile" style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}>
-                  <span className="pv-dot" style={{ background: color }} />
-                </span>
-                <span className="pv-row__body">
-                  <span className="pv-row__title" style={{ fontSize: "1rem" }}>{CATEGORY_LABELS[k]}</span>
-                  <span className="pv-row__sub">
-                    {min ? `мин. ${formatRub(min)}` : "без минимума"}
-                    {k === "reserve" ? " · на срочные покупки" : ""}
-                  </span>
-                </span>
-                <span className="pv-amount" style={{ fontSize: "1.0625rem" }}>{formatRub(draft.allocation[k])}</span>
-                <ChevronRight />
-              </button>
-            );
-          })}
-        </div>
-        <p className="pv-hint">Суммы — из плана подростка. Нажми на категорию, чтобы поменять её вместе с ним.</p>
-      </section>
+      <CategoryList
+        allocation={draft.allocation}
+        onSelect={setSheet}
+        hint="Суммы — из плана подростка. Нажми на категорию, чтобы поменять её вместе с ним."
+      />
 
       {sheet ? (
         <CategorySheet
+          mode="edit"
           category={sheet}
           allocation={draft.allocation}
           weeklyBudget={draft.weeklyBudget}
@@ -231,27 +186,5 @@ export function TeenAgreement({ user, teenTelegramId, onBack, onOpenRequests, on
 
       {toast ? <div className="pv-toast" role="status">{toast}</div> : null}
     </div>
-  );
-}
-
-function BalanceLine({ allocated, unallocated }: { allocated: number; unallocated: number }) {
-  if (unallocated === 0) {
-    return (
-      <span className="pv-note pv-tone-ok">
-        <CheckIcon /> Распределено всё: {formatRub(allocated)}
-      </span>
-    );
-  }
-  if (unallocated > 0) {
-    return (
-      <span className="pv-note pv-tone-warn">
-        <AlertIcon /> Не распределено {formatRub(unallocated)}
-      </span>
-    );
-  }
-  return (
-    <span className="pv-note pv-tone-danger">
-      <AlertIcon /> Категории больше бюджета на {formatRub(-unallocated)}
-    </span>
   );
 }

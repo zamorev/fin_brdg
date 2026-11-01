@@ -1,5 +1,5 @@
 import type { OnboardingPreview, SessionUser, UserType } from "../domain/types";
-import type { Allocation, CategoryKey } from "../domain/budget";
+import type { Allocation, CategoryKey, FundingSource } from "../domain/budget";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
@@ -119,6 +119,19 @@ export function createBudgetRequest(increase: number, explanation: string) {
   return request<{ user: SessionUser }>("/requests", {
     method: "POST",
     body: JSON.stringify({ increase, explanation }),
+  });
+}
+
+/** Запрос «изменить сумму категории» (T28): договорённость меняется после решения родителя. */
+export function createCategoryRequest(
+  categoryKey: CategoryKey,
+  amount: number,
+  fundingSource: FundingSource,
+  explanation: string,
+) {
+  return request<{ user: SessionUser }>("/requests", {
+    method: "POST",
+    body: JSON.stringify({ kind: "category_change", categoryKey, amount, fundingSource, explanation }),
   });
 }
 
