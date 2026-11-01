@@ -1,5 +1,13 @@
 // Производные числа и подписи экранов родителя (T20). Без React и fetch.
-import { CATEGORY_LABELS, formatRub, totalAllocation, type Allocation } from "./budget";
+import {
+  CATEGORY_LABELS,
+  changeCategory,
+  formatRub,
+  totalAllocation,
+  type Allocation,
+  type CategoryKey,
+  type FundingSource,
+} from "./budget";
 import type { FamilyMember, FamilyState, RuleChangeRequest, SessionUser } from "./types";
 import { memberWeeklyBudget } from "./memberBudget";
 
@@ -35,7 +43,31 @@ export function teenName(member: FamilyMember | null): string {
 }
 
 export function requestSubject(req: RuleChangeRequest): string {
-  return req.category === "weekly_budget" ? "Бюджет недели" : CATEGORY_LABELS.entertainment;
+  if (req.category === "weekly_budget") return "Бюджет недели";
+  if (req.category === "category_change" && req.categoryKey) return CATEGORY_LABELS[req.categoryKey];
+  return CATEGORY_LABELS.entertainment;
+}
+
+/**
+ * Что изменится, если применить запрос по категории к договорённости (T28):
+ * «Развлечения 400 → 500 ₽, резерв 200 → 100 ₽» или «…, бюджет 1 500 → 1 600 ₽».
+ */
+export function categoryChangeEffect(
+  allocation: Allocation,
+  weeklyBudget: number,
+  key: CategoryKey,
+  amount: number,
+  source: FundingSource,
+): string {
+  const next = changeCategory(allocation, weeklyBudget, key, amount, source);
+  const parts = [`${CATEGORY_LABELS[key]} ${allocation[key].toLocaleString("ru-RU")} → ${formatRub(amount)}`];
+  if (key !== "reserve" && next.allocation.reserve !== allocation.reserve) {
+    parts.push(`резерв ${allocation.reserve.toLocaleString("ru-RU")} → ${formatRub(next.allocation.reserve)}`);
+  }
+  if (next.weeklyBudget !== weeklyBudget) {
+    parts.push(`бюджет ${weeklyBudget.toLocaleString("ru-RU")} → ${formatRub(next.weeklyBudget)}`);
+  }
+  return parts.join(", ");
 }
 
 export function signedRub(delta: number): string {
@@ -76,7 +108,9 @@ export function teenStatusLine(user: SessionUser, teen: FamilyMember): StatusLin
     return {
       text: req.category === "weekly_budget"
         ? `Запрос · ${signedRub(req.proposedAmount - req.currentAmount)} в неделю`
-        : `Запрос · ${requestSubject(req)}`,
+        : req.category === "category_change"
+          ? `Запрос · ${requestSubject(req)} ${signedRub(req.proposedAmount - req.currentAmount)}`
+          : `Запрос · ${requestSubject(req)}`,
       tone: "warn",
     };
   }

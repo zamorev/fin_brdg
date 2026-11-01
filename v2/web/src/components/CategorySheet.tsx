@@ -5,6 +5,7 @@ import {
   changeCategory,
   formatRub,
   reserveSpare,
+  validateCategoryRequest,
   type Allocation,
   type CategoryKey,
   type FundingSource,
@@ -14,23 +15,39 @@ import { useTwa } from "../twa/TwaProvider";
 const STEP = 50;
 const MAX = 100_000;
 
+export type CategoryRequestDraft = { amount: number; source: FundingSource; explanation: string };
+
 type Props = {
   category: CategoryKey;
   allocation: Allocation;
   weeklyBudget: number;
-  teenName: string;
   onClose: () => void;
-  onSave: (next: { allocation: Allocation; weeklyBudget: number }) => Promise<void>;
-};
+} & (
+  | {
+      /** Родитель правит договорённость сразу. */
+      mode: "edit";
+      teenName: string;
+      onSave: (next: { allocation: Allocation; weeklyBudget: number }) => Promise<void>;
+    }
+  | {
+      /** Подросток просит родителя (T28): ничего не меняется до решения. */
+      mode: "request";
+      onRequest: (draft: CategoryRequestDraft) => Promise<void>;
+    }
+);
 
-/** Экран 4 — шторка правки одной категории (режим edit). */
-export function CategorySheet({ category, allocation, weeklyBudget, teenName, onClose, onSave }: Props) {
+/** Экран 4 — шторка одной категории: правка родителем или запрос подростка. */
+export function CategorySheet(props: Props) {
+  const { category, allocation, weeklyBudget, onClose } = props;
   const initial = allocation[category];
   const min = CATEGORY_MINIMUMS[category] ?? 0;
   const spare = reserveSpare(allocation);
   const [amount, setAmount] = useState(initial);
   const [source, setSource] = useState<FundingSource>(spare > 0 ? "reserve" : "budget");
   const [saving, setSaving] = useState(false);
+  const [explanation, setExplanation] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
+  const isRequest = props.mode === "request";
   const { haptic } = useTwa();
 
   const delta = amount - initial;
@@ -45,9 +62,25 @@ export function CategorySheet({ category, allocation, weeklyBudget, teenName, on
   const chips = [initial - 100, initial, initial + 50, initial + 100].filter((v) => v >= min);
 
   const save = async () => {
+    if (props.mode === "request") {
+      const local = validateCategoryRequest(allocation, weeklyBudget, category, amount, source, explanation);
+      if (local.length) {
+        setErrors(local);
+        haptic("error");
+        return;
+      }
+    }
+    setErrors([]);
     setSaving(true);
     try {
-      await onSave(next);
+      if (props.mode === "edit") await props.onSave(next);
+      else await props.onRequest({ amount, source, explanation });
+    } catch (e) {
+      // режим edit показывает тост сам; в запросе ошибка сервера — в шторке
+      if (props.mode === "request") {
+        setErrors([e instanceof Error ? e.message : "Не получилось отправить. Попробуй ещё раз"]);
+        haptic("error");
+      }
     } finally {
       setSaving(false);
     }
@@ -62,7 +95,7 @@ export function CategorySheet({ category, allocation, weeklyBudget, teenName, on
           <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <strong style={{ fontSize: "1.375rem" }}>{CATEGORY_LABELS[category]}</strong>
             <span className="pv-row__sub" style={{ fontSize: "0.875rem" }}>
-              Договорённость с {teenName}
+              {props.mode === "edit" ? `Договорённость с ${props.teenName}` : "Изменится, когда родитель согласится"}
             </span>
           </span>
           <button type="button" className="screen-back" style={{ margin: 0 }} onClick={onClose}>
@@ -145,8 +178,32 @@ export function CategorySheet({ category, allocation, weeklyBudget, teenName, on
           </div>
         ) : null}
 
-        <button type="button" className="pv-btn pv-btn--primary pv-btn--wide" disabled={delta === 0 || saving} onClick={() => void save()}>
-          {saving ? "…" : "Сохранить"}
+        {isRequest ? (
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span className="pv-row__sub" style={{ fontSize: "0.875rem", padding: "0 4px" }}>Зачем</span>
+            <textarea
+              className="textarea"
+              maxLength={200}
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder="Например: хочу сходить с друзьями в кино"
+            />
+          </label>
+        ) : null}
+
+        {errors.map((msg) => (
+          <div className="error-banner" key={msg}>
+            {msg}
+          </div>
+        ))}
+
+        <button
+          type="button"
+          className="pv-btn pv-btn--primary pv-btn--wide"
+          disabled={delta === 0 || saving || (isRequest && !explanation.trim())}
+          onClick={() => void save()}
+        >
+          {saving ? "…" : isRequest ? "Отправить родителю" : "Сохранить"}
         </button>
       </section>
     </div>
