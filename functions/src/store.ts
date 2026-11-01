@@ -1,13 +1,16 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
+  applyBudgetIncrease,
   applyUnplanned,
+  CATEGORY_ORDER,
   DEFAULT_ALLOCATION,
   WEEKLY_BUDGET,
   type Allocation,
   type RequestStatus,
   type UnplannedChoice,
   validateAllocation,
-  validateRuleChange,
+  validateAgreementChange,
+  validateBudgetIncrease,
 } from "./domain";
 
 export type { Allocation };
@@ -62,9 +65,14 @@ export type FamilyDoc = {
 
 export type RequestDoc = {
   familyId: string;
-  category: "entertainment";
+  /** `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `entertainment` — старые запросы. */
+  category: "entertainment" | "weekly_budget";
+  /** Кто просит; у старых запросов нет. */
+  teenTelegramId?: number;
   currentAmount: number;
   proposedAmount: number;
+  /** Что одобрил родитель (может отличаться от `proposedAmount` — «своя сумма»). */
+  finalAmount?: number;
   explanation: string;
   status: RequestStatus;
   parentComment: string;
@@ -406,8 +414,11 @@ function buildSessionPayload(
       ? {
           id: active.id,
           category: active.category,
+          teenTelegramId: active.teenTelegramId,
           currentAmount: active.currentAmount,
           proposedAmount: active.proposedAmount,
+          finalAmount: active.finalAmount,
+          createdAt: active.createdAt?.toDate().toISOString(),
           explanation: active.explanation,
           status: active.status,
           parentComment: active.parentComment,
@@ -643,20 +654,25 @@ export async function saveUnplanned(user: TelegramUser, choice: UnplannedChoice)
 
 export async function createRequest(
   user: TelegramUser,
-  proposedAmount: number,
+  increase: number,
   explanation: string,
 ) {
   const profile = await requireUser(user, "teen");
-  const family = await getFamily(profile.familyId);
-  const current = family.allocation.entertainment;
-  const errors = validateRuleChange(current, proposedAmount, explanation);
+  const errors = validateBudgetIncrease(increase, explanation);
   if (errors.length) throw new Error(errors.join("; "));
+
+  const active = await getActiveRequest(profile.familyId);
+  if (active?.status === "pending") throw new Error("Уже есть запрос — ждём ответа семьи");
+
+  const family = await getFamily(profile.familyId);
+  const current = family.teenWeeklyBudgets?.[String(user.id)] ?? WEEKLY_BUDGET;
 
   await db().collection("requests").add({
     familyId: profile.familyId,
-    category: "entertainment",
+    category: "weekly_budget",
+    teenTelegramId: user.id,
     currentAmount: current,
-    proposedAmount,
+    proposedAmount: current + increase,
     explanation: explanation.trim(),
     status: "pending",
     parentComment: "",
@@ -703,6 +719,7 @@ export async function decideRequest(
   requestId: string,
   action: string,
   comment: string,
+  amount?: number,
 ) {
   const profile = await requireUser(user, "parent");
 
@@ -719,10 +736,28 @@ export async function decideRequest(
   else if (action === "needs_clarification") status = "needs_clarification";
   else throw new Error("Неизвестное действие");
 
+  const familyRef = db().collection("families").doc(profile.familyId);
+
+  if (status === "approved" && data.category === "weekly_budget") {
+    const finalAmount = amount ?? data.proposedAmount;
+    const increase = finalAmount - data.currentAmount;
+    const errors = validateBudgetIncrease(increase, data.explanation);
+    if (errors.length) throw new Error(errors.join("; "));
+
+    const family = await getFamily(profile.familyId);
+    const teenId = String(data.teenTelegramId ?? soleTeenId(family));
+    const budgetNow = family.teenWeeklyBudgets?.[teenId] ?? WEEKLY_BUDGET;
+    await familyRef.update({
+      allocation: applyBudgetIncrease(family.allocation, increase),
+      [`teenWeeklyBudgets.${teenId}`]: budgetNow + increase,
+    });
+    await ref.update({ status, parentComment: comment.trim(), finalAmount });
+    return sessionForUser(user, profile);
+  }
+
   await ref.update({ status, parentComment: comment.trim() });
 
   if (status === "approved") {
-    const familyRef = db().collection("families").doc(profile.familyId);
     const family = await getFamily(profile.familyId);
     await familyRef.update({
       allocation: {
@@ -734,6 +769,51 @@ export async function decideRequest(
 
   return sessionForUser(user, profile);
 }
+
+function soleTeenId(family: FamilyDoc): string {
+  const ids = Object.keys(family.teenWeeklyBudgets ?? {});
+  if (ids.length !== 1) throw new Error("Не понятно, чей это запрос");
+  return ids[0];
+}
+
+/** Родитель меняет договорённость подростка: бюджет недели и суммы категорий (T20). */
+export async function updateTeenAgreement(
+  user: TelegramUser,
+  teenTelegramId: number,
+  allocationRaw: Record<string, unknown>,
+  weeklyBudgetRaw: unknown,
+) {
+  const profile = await requireUser(user, "parent");
+  const teen = await getUser(teenTelegramId);
+  if (!teen || teen.familyId !== profile.familyId || teen.userType !== "teen") {
+    throw new Error("Подросток не из твоей семьи");
+  }
+
+  const weeklyBudget = Number(weeklyBudgetRaw);
+  if (!Number.isInteger(weeklyBudget) || weeklyBudget <= 0 || weeklyBudget > MAX_WEEKLY_BUDGET) {
+    throw new Error("Недельный бюджет — целое число от 1 до 100 000 ₽");
+  }
+  const allocation = {} as Allocation;
+  for (const key of CATEGORY_ORDER) {
+    const value = Number(allocationRaw?.[key]);
+    if (!Number.isInteger(value)) throw new Error("Суммы категорий — целые числа");
+    allocation[key] = value;
+  }
+  const family = await getFamily(profile.familyId);
+  const errors = validateAgreementChange(family.allocation, allocation, weeklyBudget);
+  if (errors.length) throw new Error(errors.join("; "));
+
+  await db()
+    .collection("families")
+    .doc(profile.familyId)
+    .update({
+      allocation,
+      [`teenWeeklyBudgets.${teenTelegramId}`]: weeklyBudget,
+    });
+  return sessionForUser(user, profile);
+}
+
+const MAX_WEEKLY_BUDGET = 100_000;
 
 export async function getFamilyView(user: TelegramUser, botToken?: string) {
   const profile = await requireUser(user);

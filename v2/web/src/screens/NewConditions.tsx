@@ -1,6 +1,12 @@
 import { useState } from "react";
-import { formatRub, validateRuleChange } from "../domain/budget";
-import { createRuleRequest } from "../api/client";
+import {
+  BUDGET_INCREASE_MAX,
+  BUDGET_INCREASE_STEP,
+  formatRub,
+  validateBudgetIncrease,
+} from "../domain/budget";
+import { selfWeeklyBudget } from "../domain/memberBudget";
+import { createBudgetRequest } from "../api/client";
 import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
 import { useTwa } from "../twa/TwaProvider";
@@ -13,10 +19,10 @@ type Props = {
 };
 
 export function NewConditions({ user, onBack, onSent }: Props) {
-  const current = user.family.allocation.entertainment;
-  const [proposed, setProposed] = useState(Math.min(500, current + 100));
+  const current = selfWeeklyBudget(user);
+  const [increase, setIncrease] = useState(100);
   const [explanation, setExplanation] = useState(
-    "Хочу сходить с друзьями ещё раз на этой неделе — планирую заранее.",
+    "Развлечения: хочу сходить с друзьями ещё раз на этой неделе — планирую заранее.",
   );
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +31,7 @@ export function NewConditions({ user, onBack, onSent }: Props) {
   useBackAction(onBack);
 
   const submit = async () => {
-    const local = validateRuleChange(current, proposed, explanation);
+    const local = validateBudgetIncrease(increase, explanation);
     if (local.length) {
       setErrors(local);
       haptic("error");
@@ -33,7 +39,7 @@ export function NewConditions({ user, onBack, onSent }: Props) {
     }
     setLoading(true);
     try {
-      const res = await createRuleRequest(proposed, explanation);
+      const res = await createBudgetRequest(increase, explanation);
       haptic("success");
       onSent(res.user);
     } catch (e) {
@@ -46,36 +52,33 @@ export function NewConditions({ user, onBack, onSent }: Props) {
 
   return (
     <div className="app-shell">
-      <h1 className="screen-title">Другое правило</h1>
+      <h1 className="screen-title">Попросить больше</h1>
       <div className="card">
         <h2 style={{ margin: "0 0 12px", fontSize: "1rem" }}>
           Предложение семье
         </h2>
         <p style={{ color: "var(--fb-hint)", fontSize: "0.875rem" }}>
-          Сейчас{" "}
-          <span style={{ textDecoration: "line-through" }}>
-            {formatRub(current)}
-          </span>{" "}
-          на развлечения в неделю
+          Бюджет недели сейчас {formatRub(current)}, станет{" "}
+          <strong style={{ color: "var(--fb-text)" }}>{formatRub(current + increase)}</strong>
         </p>
 
         <div className="slider-row" style={{ marginTop: 16 }}>
           <label>
-            <span>Сколько на развлечения</span>
-            <strong>{formatRub(proposed)}</strong>
+            <span>Сколько добавить в неделю</span>
+            <strong>+{formatRub(increase)}</strong>
           </label>
           <input
             type="range"
-            min={100}
-            max={800}
-            step={50}
-            value={proposed}
-            onChange={(e) => setProposed(Number(e.target.value))}
+            min={BUDGET_INCREASE_STEP}
+            max={BUDGET_INCREASE_MAX}
+            step={BUDGET_INCREASE_STEP}
+            value={increase}
+            onChange={(e) => setIncrease(Number(e.target.value))}
           />
         </div>
 
         <label style={{ display: "block", marginBottom: 8, fontSize: "0.875rem" }}>
-          Зачем тебе это
+          На что нужны деньги — напиши категорию и зачем
         </label>
         <textarea
           className="textarea"
@@ -96,7 +99,7 @@ export function NewConditions({ user, onBack, onSent }: Props) {
         />
       </div>
       <p className="hint-footer">
-        Родитель увидит у себя, когда зайдёт в бот.
+        Родитель увидит запрос у себя в приложении.
       </p>
     </div>
   );

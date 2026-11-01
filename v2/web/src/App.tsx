@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REQUEST_STATUS_LABELS } from "./domain/budget";
 import type { Allocation, UnplannedChoice } from "./domain/budget";
 import { useSession } from "./session/SessionProvider";
 import { OnboardingScreen } from "./screens/OnboardingScreen";
@@ -15,11 +14,13 @@ import {
 import { NewConditions } from "./screens/NewConditions";
 import { RequestSent } from "./screens/RequestSent";
 import { RequestStatusTeen } from "./screens/RequestStatusTeen";
-import { ParentRequest } from "./screens/ParentRequest";
+import { ParentHome } from "./screens/ParentHome";
+import { ParentRequests } from "./screens/ParentRequests";
+import { TeenAgreement } from "./screens/TeenAgreement";
+import { fetchMe } from "./api/client";
+import type { SessionUser } from "./domain/types";
 import { FamilyScreen } from "./screens/FamilyScreen";
-import { FamilyWeeklyBudgetSection } from "./components/FamilyWeeklyBudgetSection";
 import { useCopy } from "./copy/CopyProvider";
-import { APP_BUILD_ID } from "./buildInfo";
 
 type Route =
   | { name: "home" }
@@ -34,7 +35,8 @@ type Route =
   | { name: "new-conditions" }
   | { name: "request-sent" }
   | { name: "request-status" }
-  | { name: "parent-request" }
+  | { name: "parent-requests" }
+  | { name: "parent-teen"; teenTelegramId: number }
   | { name: "scenario-step" }
   | { name: "scenario-outcome"; summary: AnswerSummary };
 
@@ -62,6 +64,22 @@ export function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [route.name]);
+
+  // Вернулись в Mini App — тихо обновить сессию (новый запрос, решение другой стороны).
+  const hasUser = Boolean(user);
+  useEffect(() => {
+    if (!hasUser) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void fetchMe()
+        .then((data) => {
+          if (!("needsOnboarding" in data && data.needsOnboarding)) setUser(data as SessionUser);
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [hasUser, setUser]);
 
   useEffect(() => {
     if (!user || user.userType !== "teen") return;
@@ -106,58 +124,27 @@ export function App() {
     if (route.name === "family") {
       return <FamilyScreen user={user} onBack={backFromFamily} onDone={goHome} />;
     }
-    if (route.name === "parent-request") {
+    if (route.name === "parent-requests") {
+      return <ParentRequests user={user} onBack={goHome} onDecided={setUser} />;
+    }
+    if (route.name === "parent-teen") {
       return (
-        <ParentRequest
+        <TeenAgreement
           user={user}
+          teenTelegramId={route.teenTelegramId}
           onBack={goHome}
-          onDecided={(u) => {
-            setUser(u);
-            goHome();
-          }}
+          onOpenRequests={() => setRoute({ name: "parent-requests" })}
+          onSaved={setUser}
         />
       );
     }
-    const pending = user.activeRequest?.status === "pending" ? user.activeRequest : null;
     return (
-      <div className="app-shell">
-        <h1 className="screen-title">{t("ui.parent.home.title")}</h1>
-        <p className="screen-sub">{t("ui.parent.home.sub")}</p>
-        <div className="card task-list task-list--tap">
-          {pending ? (
-            <button
-              type="button"
-              className="task-row"
-              onClick={() => setRoute({ name: "parent-request" })}
-            >
-              <span className="task-icon">⏳</span>
-              <span>
-                <div className="task-title">Предложение подростка</div>
-                <div className="task-sub">Развлечения — новый лимит на неделю</div>
-              </span>
-              <span className="badge">{REQUEST_STATUS_LABELS[pending.status]}</span>
-            </button>
-          ) : null}
-        </div>
-        <FamilyWeeklyBudgetSection members={user.members} />
-        <div className="card task-list task-list--tap">
-          <button
-            type="button"
-            className="task-row"
-            onClick={openFamily}
-          >
-            <span className="task-icon">👨‍👩‍👧</span>
-            <span>
-              <div className="task-title">Семья</div>
-              <div className="task-sub">
-                {user.family.memberCounts.total}{" "}
-                {pluralMembers(user.family.memberCounts.total)} · пригласить
-              </div>
-            </span>
-          </button>
-        </div>
-        <p className="hint-footer build-stamp">id {APP_BUILD_ID}</p>
-      </div>
+      <ParentHome
+        user={user}
+        onOpenRequests={() => setRoute({ name: "parent-requests" })}
+        onOpenTeen={(teenTelegramId) => setRoute({ name: "parent-teen", teenTelegramId })}
+        onOpenFamily={openFamily}
+      />
     );
   }
 
@@ -267,6 +254,7 @@ export function App() {
           onStartQuest={() => setRoute({ name: "quest-budget" })}
           onOpenAgreements={goHome}
           onOpenRequest={() => setRoute({ name: "request-status" })}
+          onNewRequest={() => setRoute({ name: "new-conditions" })}
           onOpenFamily={openFamily}
           onOpenScenarioStep={() => setRoute({ name: "scenario-step" })}
           onScenarioStarted={(u) => {
@@ -310,12 +298,4 @@ function LocalDevHint() {
       </p>
     </div>
   );
-}
-
-function pluralMembers(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return "участник";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "участника";
-  return "участников";
 }

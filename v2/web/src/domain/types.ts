@@ -15,9 +15,15 @@ export type FamilyMember = {
 
 export type RuleChangeRequest = {
   id: string;
-  category: "entertainment";
+  /** `weekly_budget` — «+N ₽ к недельному бюджету» (T20); `entertainment` — старые запросы. */
+  category: "entertainment" | "weekly_budget";
+  teenTelegramId?: number;
   currentAmount: number;
   proposedAmount: number;
+  /** Что одобрил родитель («своя сумма» или proposedAmount). */
+  finalAmount?: number;
+  /** ISO-время создания. */
+  createdAt?: string;
   explanation: string;
   status: import("./budget").RequestStatus;
   parentComment: string;

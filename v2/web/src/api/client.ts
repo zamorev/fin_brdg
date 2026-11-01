@@ -114,10 +114,23 @@ export function submitUnplanned(choice: string) {
   });
 }
 
-export function createRuleRequest(proposedAmount: number, explanation: string) {
+/** Запрос «+N ₽ к недельному бюджету» (T20). */
+export function createBudgetRequest(increase: number, explanation: string) {
   return request<{ user: SessionUser }>("/requests", {
     method: "POST",
-    body: JSON.stringify({ proposedAmount, explanation }),
+    body: JSON.stringify({ increase, explanation }),
+  });
+}
+
+/** Родитель меняет бюджет недели и суммы категорий подростка (T20). */
+export function updateTeenAgreement(
+  teenTelegramId: number,
+  allocation: Allocation,
+  weeklyBudget: number,
+) {
+  return request<{ user: SessionUser }>(`/teens/${teenTelegramId}/agreement`, {
+    method: "PATCH",
+    body: JSON.stringify({ allocation, weeklyBudget }),
   });
 }
 
@@ -125,10 +138,11 @@ export function decideRequest(
   requestId: string,
   action: string,
   comment: string,
+  amount?: number,
 ) {
   return request<{ user: SessionUser }>(`/requests/${requestId}/decide`, {
     method: "POST",
-    body: JSON.stringify({ action, comment }),
+    body: JSON.stringify({ action, comment, amount }),
   });
 }
 

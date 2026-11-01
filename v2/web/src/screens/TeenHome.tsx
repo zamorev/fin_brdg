@@ -14,6 +14,7 @@ type Props = {
   onStartQuest: () => void;
   onOpenAgreements: () => void;
   onOpenRequest: () => void;
+  onNewRequest: () => void;
   onOpenFamily: () => void;
   onOpenScenarioStep: () => void;
   onScenarioStarted: (user: SessionUser) => void;
@@ -24,6 +25,7 @@ export function TeenHome({
   onStartQuest,
   onOpenAgreements,
   onOpenRequest,
+  onNewRequest,
   onOpenFamily,
   onOpenScenarioStep,
   onScenarioStarted,
@@ -165,11 +167,25 @@ export function TeenHome({
             <span className="task-icon">⏳</span>
             <span>
               <div className="task-title">
-                Развлечения: {req.currentAmount} → {req.proposedAmount} ₽
+                {req.category === "weekly_budget" ? "Бюджет недели" : "Развлечения"}:{" "}
+                {req.currentAmount} → {req.finalAmount ?? req.proposedAmount} ₽
               </div>
-              <div className="task-sub">Ждём ответа семьи</div>
+              <div className="task-sub">
+                {req.status === "pending" ? "Ждём ответа семьи" : "Ответ семьи"}
+              </div>
             </span>
             <span className="badge">{REQUEST_STATUS_LABELS[req.status]}</span>
+          </button>
+        )}
+
+        {req?.status !== "pending" && (
+          <button type="button" className="task-row" onClick={onNewRequest}>
+            <span className="task-icon">➕</span>
+            <span>
+              <div className="task-title">Попросить больше</div>
+              <div className="task-sub">Прибавка к бюджету недели — родитель решит</div>
+            </span>
+            <span className="inline-action">Попросить</span>
           </button>
         )}
       </div>
