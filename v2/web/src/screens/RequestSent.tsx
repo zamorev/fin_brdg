@@ -1,4 +1,5 @@
 import { formatRub, REQUEST_STATUS_LABELS } from "../domain/budget";
+import { requestSubject } from "../domain/parentView";
 import type { SessionUser } from "../domain/types";
 import { MainAction } from "../components/MainAction";
 
@@ -36,7 +37,7 @@ export function RequestSent({ user, onDone, onViewStatus }: Props) {
 
       <div className="card" style={{ textAlign: "left" }}>
         <div style={{ color: "var(--fb-hint)", fontSize: "0.8125rem" }}>
-          {req.category === "weekly_budget" ? "Бюджет недели" : "Развлечения в неделю"}
+          {req.category === "weekly_budget" ? "Бюджет недели" : `${requestSubject(req)} в неделю`}
         </div>
         <div className="compare" style={{ margin: "12px 0" }}>
           <span className="compare-old">{formatRub(req.currentAmount)}</span>

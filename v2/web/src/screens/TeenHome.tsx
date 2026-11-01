@@ -1,5 +1,6 @@
 import { formatRub, REQUEST_STATUS_LABELS } from "../domain/budget";
 import { selfWeeklyBudget } from "../domain/memberBudget";
+import { requestSubject } from "../domain/parentView";
 import type { SessionUser } from "../domain/types";
 import { startScenario } from "../api/client";
 import { FamilyWeeklyBudgetSection } from "../components/FamilyWeeklyBudgetSection";
@@ -167,8 +168,7 @@ export function TeenHome({
             <span className="task-icon">⏳</span>
             <span>
               <div className="task-title">
-                {req.category === "weekly_budget" ? "Бюджет недели" : "Развлечения"}:{" "}
-                {req.currentAmount} → {req.finalAmount ?? req.proposedAmount} ₽
+                {requestSubject(req)}: {req.currentAmount} → {req.finalAmount ?? req.proposedAmount} ₽
               </div>
               <div className="task-sub">
                 {req.status === "pending" ? "Ждём ответа семьи" : "Ответ семьи"}

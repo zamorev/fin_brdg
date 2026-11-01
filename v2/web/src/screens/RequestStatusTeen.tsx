@@ -1,5 +1,6 @@
-import { formatRub } from "../domain/budget";
+import { CATEGORY_LABELS, CATEGORY_ORDER, formatRub, type CategoryKey } from "../domain/budget";
 import { selfWeeklyBudget } from "../domain/memberBudget";
+import { requestSubject } from "../domain/parentView";
 import type { SessionUser } from "../domain/types";
 import { MainAction } from "../components/MainAction";
 import { useBackAction } from "../components/useBackAction";
@@ -24,6 +25,9 @@ export function RequestStatusTeen({ user, onBack }: Props) {
 
   const approved = req.status === "approved";
   const weekly = req.category === "weekly_budget";
+  const categoryChange = req.category === "category_change";
+  // Что показать в «Твои правила теперь»: по категории — все пять, иначе как раньше.
+  const ruleKeys: CategoryKey[] = categoryChange ? CATEGORY_ORDER : ["entertainment", "savings", "reserve"];
   const finalAmount = approved ? req.finalAmount ?? req.proposedAmount : req.proposedAmount;
   const rejected = req.status === "rejected";
   const clarify = req.status === "needs_clarification";
@@ -39,7 +43,9 @@ export function RequestStatusTeen({ user, onBack }: Props) {
   const subline = approved
     ? weekly
       ? "Прибавка легла в резерв — можешь переложить её в квесте «Неделя»"
-      : "Правило обновилось — смотри ниже"
+      : categoryChange
+        ? "Договорённость обновилась — смотри ниже"
+        : "Правило обновилось — смотри ниже"
     : rejected
       ? "Можно обсудить снова после следующего квеста"
       : clarify
@@ -86,6 +92,9 @@ export function RequestStatusTeen({ user, onBack }: Props) {
           {subline}
         </p>
 
+        <div style={{ textAlign: "center", color: "var(--fb-hint)", fontSize: "0.8125rem" }}>
+          {requestSubject(req)}
+        </div>
         <div className="compare">
           <div>
             <div style={{ color: "var(--fb-hint)", fontSize: "0.75rem" }}>Было</div>
@@ -112,24 +121,18 @@ export function RequestStatusTeen({ user, onBack }: Props) {
         <>
           <h3 style={{ margin: "16px 0 8px" }}>Твои правила теперь</h3>
           <div className="card">
-            {weekly ? (
+            {weekly || categoryChange ? (
               <div className="row-between" style={{ marginBottom: 12 }}>
                 <span>Бюджет недели</span>
                 <strong>{formatRub(selfWeeklyBudget(user))}</strong>
               </div>
             ) : null}
-            <div className="row-between">
-              <span>Развлечения</span>
-              <strong>{formatRub(user.family.allocation.entertainment)} в неделю</strong>
-            </div>
-            <div className="row-between" style={{ marginTop: 12 }}>
-              <span>Накопления на цель</span>
-              <strong>{formatRub(user.family.allocation.savings)} в неделю</strong>
-            </div>
-            <div className="row-between" style={{ marginTop: 12 }}>
-              <span>Резерв</span>
-              <strong>{formatRub(user.family.allocation.reserve)} в неделю</strong>
-            </div>
+            {ruleKeys.map((k, i) => (
+              <div key={k} className="row-between" style={i ? { marginTop: 12 } : undefined}>
+                <span>{CATEGORY_LABELS[k]}</span>
+                <strong>{formatRub(user.family.allocation[k])} в неделю</strong>
+              </div>
+            ))}
           </div>
         </>
       )}
